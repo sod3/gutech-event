@@ -1,0 +1,5 @@
+import { ImageResponse } from "next/og";
+export const alt = "BuildFest 2026 — The next big idea could be yours.";
+export const size = { width: 1200, height: 630 };
+export const contentType = "image/png";
+export default function Image() { return new ImageResponse(<div style={{ display:"flex", flexDirection:"column", width:"100%", height:"100%", background:"#fafbff", padding:"70px 80px", color:"#0f172a", fontFamily:"sans-serif" }}><div style={{display:"flex",fontSize:27,fontWeight:700,letterSpacing:-1}}>buildfest<span style={{color:"#2563eb",marginLeft:8}}>26</span></div><div style={{display:"flex",marginTop:55,fontSize:76,lineHeight:1,fontWeight:800,letterSpacing:-4,flexDirection:"column"}}><span>THE NEXT BIG IDEA</span><span>COULD BE <span style={{color:"#6d4cde"}}>YOURS.</span></span></div><div style={{display:"flex",marginTop:35,fontSize:25,color:"#667085"}}>One Idea. Three Minds. Endless Possibilities.</div><div style={{display:"flex",marginTop:"auto",fontSize:20,justifyContent:"space-between"}}><span>GUtech Entrepreneurship Society</span><span>1–3 members · PKR 1,500 per team</span></div></div>, size); }
