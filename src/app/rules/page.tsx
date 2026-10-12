@@ -1,4 +1,100 @@
 import { Header, Footer, SectionLabel } from "@/components/ui";
 import { CRITERIA } from "@/lib/types";
-export const metadata={title:"Event rules"};
-export default function Page() {return <><Header/><main id="top" className="container content-page"><SectionLabel>PLAY FAIR. BUILD BOLD.</SectionLabel><h1>The BuildFest<br/><span className="gradient-text">ground rules.</span></h1><p>BuildFest 2026 is an innovation and entrepreneurship hackathon organized by the GUtech Entrepreneurship Society, powered by ArtDera, at GUtech University, Pakistan.</p><h2>Teams & eligibility</h2><ul><li>Students from all departments are welcome. Advanced coding experience is not required.</li><li>Teams consist of 1–3 participants, including the leader. Each participant may register with one team.</li><li>PKR 1,500 covers the entire team. There are no per-member fees or hidden charges.</li><li>Registration is confirmed only after an organizer verifies the payment. A submitted form or uploaded receipt alone is not confirmation.</li></ul><h2>Your idea & your tools</h2><ul><li>Identify a real-world problem, research it, develop an original solution, and present an MVP or prototype.</li><li>AI, no-code, design tools, and coding frameworks are allowed and encouraged.</li><li>Declare AI assistance, understand how your product works, and be ready to explain your approach.</li><li>Credit third-party research, code, assets, and tools. Respect intellectual property and avoid plagiarism.</li><li>Use only data and assets you have permission to use. Treat teammates, judges, and other participants respectfully.</li></ul><h2>Judging · 100 points</h2><ul>{CRITERIA.map(c=><li key={c.name}>{c.name}: {c.points} points</li>)}</ul><p>Complexity is not the goal. Genuine problem-solving, creativity, research, and practical impact carry the most weight.</p><h2>Submissions & deadlines</h2><p>The official schedule and deadlines are published by the organizers. Team leaders can save and edit their project, problem statement, pitch deck, and prototype links until the configured submission deadline. Select “Final submission” to confirm the version for judging.</p><h2>Prizes & results</h2><p>Only verified prizes and confirmed mentors or judges are listed on the official site. Results are published after the assigned judges have completed scoring and organizers approve publication.</p><h2>Payments & refunds</h2><p>Use only official payment instructions shown during registration. Review the organizer’s <a href="/privacy">refund policy and privacy information</a> before paying. If a payment needs correction, the leader can resubmit its details from the dashboard.</p></main><Footer/></>;}
+export const metadata = { title: "Event rules" };
+export default function Page() {
+  return (
+    <>
+      <Header />
+      <main id="top" className="container content-page">
+        <SectionLabel>PLAY FAIR. BUILD BOLD.</SectionLabel>
+        <h1>
+          The BuildFest
+          <br />
+          <span className="gradient-text">ground rules.</span>
+        </h1>
+        <p>
+          BuildFest 2026 is an innovation and entrepreneurship hackathon
+          organized by the GUtech Entrepreneurship Society, powered by ArtDera,
+          at GUtech University, Pakistan.
+        </p>
+        <h2>Teams & eligibility</h2>
+        <ul>
+          <li>
+            Students from all departments are welcome. Advanced coding
+            experience is not required.
+          </li>
+          <li>
+            Teams consist of 1–3 participants, including the leader. Each
+            participant may register with one team.
+          </li>
+          <li>
+            PKR 1,500 covers the entire team. There are no per-member fees or
+            hidden charges.
+          </li>
+          <li>
+            Registration is confirmed only after an organizer verifies the
+            payment. A submitted form or uploaded receipt alone is not
+            confirmation.
+          </li>
+        </ul>
+        <h2>Your idea & your tools</h2>
+        <ul>
+          <li>
+            Identify a real-world problem, research it, develop an original
+            solution, and present an MVP or prototype.
+          </li>
+          <li>
+            AI, no-code, design tools, and coding frameworks are allowed and
+            encouraged.
+          </li>
+          <li>
+            Declare AI assistance, understand how your product works, and be
+            ready to explain your approach.
+          </li>
+          <li>
+            Credit third-party research, code, assets, and tools. Respect
+            intellectual property and avoid plagiarism.
+          </li>
+          <li>
+            Use only data and assets you have permission to use. Treat
+            teammates, judges, and other participants respectfully.
+          </li>
+        </ul>
+        <h2>Judging · 100 points</h2>
+        <ul>
+          {CRITERIA.map((c) => (
+            <li key={c.name}>
+              {c.name}: {c.points} points
+            </li>
+          ))}
+        </ul>
+        <p>
+          Complexity is not the goal. Genuine problem-solving, creativity,
+          research, and practical impact carry the most weight.
+        </p>
+        <h2>Submissions & deadlines</h2>
+        <p>
+          The official schedule and deadlines are published by the organizers.
+          Team leaders can save and edit their project, problem statement, pitch
+          deck, and prototype links until the configured submission deadline.
+          Select “Final submission” to confirm the version for judging.
+        </p>
+        <h2>Prizes & results</h2>
+        <p>
+          Only verified prizes and confirmed mentors or judges are listed on the
+          official site. Results are published after the assigned judges have
+          completed scoring and organizers approve publication.
+        </p>
+        <h2>Payments & refunds</h2>
+        <p>
+          Use only official payment instructions shown during registration.
+          Review the organizer’s{" "}
+          <a href="/privacy">refund policy and privacy information</a> before
+          paying. If a payment needs correction, the leader can resubmit its
+          details from the dashboard.
+        </p>
+      </main>
+      <Footer />
+    </>
+  );
+}

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "setup:admin": "node scripts/setup-admin.mjs",
+    "test:integration": "node --env-file=.env.local scripts/verify-workflow.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

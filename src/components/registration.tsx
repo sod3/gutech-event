@@ -2,36 +2,711 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ArrowUpRight, BrainCircuit, Check, CheckCircle2, Clock3, CreditCard, LockKeyhole, Save, ShieldCheck, Sparkles, User, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  BrainCircuit,
+  Check,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  LockKeyhole,
+  Save,
+  ShieldCheck,
+  Sparkles,
+  User,
+  Users,
+} from "lucide-react";
 import { z } from "zod";
-import { emailSchema, passwordSchema, registrationSchema } from "@/lib/validation";
+import {
+  emailSchema,
+  passwordSchema,
+  registrationSchema,
+} from "@/lib/validation";
 import { registrationState, type Member, type PublicEvent } from "@/lib/types";
-import { api, FormMessage, LoadingButton, SectionLabel, formatDate } from "./ui";
+import {
+  api,
+  FormMessage,
+  LoadingButton,
+  SectionLabel,
+  formatDate,
+} from "./ui";
 
-type Draft = { teamName:string; leaderName:string; email:string; whatsapp:string; department:string; teamSize:number; members:Member[]; methodId:string; reference:string; password:string; agreement:boolean };
-const empty:Draft={teamName:"",leaderName:"",email:"",whatsapp:"",department:"",teamSize:1,members:[],methodId:"",reference:"",password:"",agreement:false};
-const detailSchema=z.object({teamName:z.string().trim().min(2,"Give your team a name.").max(80),leaderName:z.string().trim().min(2,"Enter your full name.").max(100),email:emailSchema,password:passwordSchema,whatsapp:z.string().trim().regex(/^\+?[\d\s()-]{10,24}$/, "Enter a valid WhatsApp number."),department:z.string().trim().min(2,"Enter your department or program.").max(100)});
-const memberSchema=z.object({members:z.array(z.object({name:z.string().trim().min(2,"Enter a full name.").max(100),email:emailSchema})).max(2)});
-export function Registration({event}:{event:PublicEvent}) {
-  const router=useRouter(); const [data,setData]=useState<Draft>(empty); const [step,setStep]=useState(0); const [fields,setFields]=useState<Record<string,string>>({}); const [error,setError]=useState(""); const [busy,setBusy]=useState(false); const [receipt,setReceipt]=useState<File|null>(null); const [ready,setReady]=useState(false); const formRef=useRef<HTMLFormElement>(null);
-  const state=registrationState(event); const method=event.paymentMethods.find(m=>m.id===data.methodId);
-  useEffect(()=> { try { const stored=JSON.parse(localStorage.getItem("buildfest-registration-draft") || "null"); if(stored && typeof stored.teamName==="string" && Array.isArray(stored.members)) setData({...empty,...stored,password:"",agreement:false,teamSize:[1,2,3].includes(stored.teamSize)?stored.teamSize:1,members:stored.members.slice(0,2)}); } catch {} setReady(true); },[]);
-  useEffect(()=> { if(!ready) return; const timer=setTimeout(()=>{const {password,agreement,...draft}=data; void password; void agreement; try { localStorage.setItem("buildfest-registration-draft",JSON.stringify(draft)); } catch {}},350); return ()=>clearTimeout(timer); },[data,ready]);
-  const change=(key:keyof Draft,value:Draft[keyof Draft])=>{setData(prev=>({...prev,[key]:value}));setFields(prev=>({...prev,[key]:""}));setError("");};
-  const errors=(issues:z.core.$ZodIssue[])=>{setFields(Object.fromEntries(issues.map(i=>[i.path.join("."),i.message])));setError("Please check the highlighted details."); requestAnimationFrame(()=>formRef.current?.querySelector<HTMLInputElement>("[aria-invalid='true']")?.focus());};
-  const advance=()=> {
-    setError(""); setFields({});
-    if(step===0) { const result=detailSchema.safeParse(data); if(!result.success) {errors(result.error.issues);return;} }
-    if(step===1) { const result=memberSchema.safeParse(data); if(!result.success) {errors(result.error.issues);return;} const emails=[data.email.toLowerCase().trim(),...data.members.map(m=>m.email.toLowerCase().trim())]; if(new Set(emails).size!==emails.length) {setError("Every participant needs a different email address.");return;} }
-    if(step===2) { if(!state.open) {setError(state.reason);return;} if(!method || data.reference.trim().length<3) {setFields({reference:!data.reference?"Enter your transaction or reference ID.":""});setError("Select a payment method and add your transaction reference.");return;} }
-    setStep(step+1);
+type Draft = {
+  teamName: string;
+  leaderName: string;
+  email: string;
+  whatsapp: string;
+  department: string;
+  teamSize: number;
+  members: Member[];
+  methodId: string;
+  reference: string;
+  password: string;
+  agreement: boolean;
+};
+const empty: Draft = {
+  teamName: "",
+  leaderName: "",
+  email: "",
+  whatsapp: "",
+  department: "",
+  teamSize: 1,
+  members: [],
+  methodId: "",
+  reference: "",
+  password: "",
+  agreement: false,
+};
+const detailSchema = z.object({
+  teamName: z.string().trim().min(2, "Give your team a name.").max(80),
+  leaderName: z.string().trim().min(2, "Enter your full name.").max(100),
+  email: emailSchema,
+  password: passwordSchema,
+  whatsapp: z
+    .string()
+    .trim()
+    .regex(/^\+?[\d\s()-]{10,24}$/, "Enter a valid WhatsApp number."),
+  department: z
+    .string()
+    .trim()
+    .min(2, "Enter your department or program.")
+    .max(100),
+});
+const memberSchema = z.object({
+  members: z
+    .array(
+      z.object({
+        name: z.string().trim().min(2, "Enter a full name.").max(100),
+        email: emailSchema,
+      }),
+    )
+    .max(2),
+});
+export function Registration({ event }: { event: PublicEvent }) {
+  const router = useRouter();
+  const [data, setData] = useState<Draft>(empty);
+  const [step, setStep] = useState(0);
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [ready, setReady] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const state = registrationState(event);
+  const method = event.paymentMethods.find((m) => m.id === data.methodId);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("buildfest-registration-draft") || "null",
+      );
+      if (
+        stored &&
+        typeof stored.teamName === "string" &&
+        Array.isArray(stored.members)
+      )
+        setData({
+          ...empty,
+          ...stored,
+          password: "",
+          agreement: false,
+          teamSize: [1, 2, 3].includes(stored.teamSize) ? stored.teamSize : 1,
+          members: stored.members.slice(0, 2),
+        });
+    } catch {}
+    setReady(true);
+  }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const timer = setTimeout(() => {
+      const { password, agreement, ...draft } = data;
+      void password;
+      void agreement;
+      try {
+        localStorage.setItem(
+          "buildfest-registration-draft",
+          JSON.stringify(draft),
+        );
+      } catch {}
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [data, ready]);
+  const change = (key: keyof Draft, value: Draft[keyof Draft]) => {
+    setData((prev) => ({ ...prev, [key]: value }));
+    setFields((prev) => ({ ...prev, [key]: "" }));
+    setError("");
   };
-  const submit=async(e:FormEvent)=> {e.preventDefault(); if(step<3) {advance();return;} const parsed=registrationSchema.safeParse(data); if(!parsed.success) {errors(parsed.error.issues);return;} setBusy(true);setError("");try {const form=new FormData();form.append("data",JSON.stringify(parsed.data));if(receipt)form.append("receipt",receipt);const result=await api<{redirect:string}>("/api/register","POST",form);localStorage.removeItem("buildfest-registration-draft");router.push(result.redirect);router.refresh();}catch(e){setError(e instanceof Error?e.message:"Please try again.");}finally{setBusy(false);} };
-  const field=(key:keyof Draft,label:string,placeholder:string,type="text",full=false,hint?:string)=><div className={`field ${full?"field-full":"field-mobile-full"}`}><label htmlFor={key}>{label}</label><input id={key} name={key} value={String(data[key])} onChange={e=>change(key,e.target.value)} type={type} placeholder={placeholder} autoComplete={key==="email"?"email":key==="password"?"new-password":key==="leaderName"?"name":key==="whatsapp"?"tel":"off"} aria-invalid={!!fields[key]} aria-describedby={fields[key]?`${key}-error`:hint?`${key}-hint`:undefined} maxLength={key==="password"?128:key==="email"?254:100}/>{fields[key] && <small className="field-error" id={`${key}-error`}>{fields[key]}</small>}{hint && <small id={`${key}-hint`}>{hint}</small>}</div>;
-  return <div className="container registration-layout"><aside className="registration-aside"><SectionLabel>YOUR FIRST STEP INTO WHAT’S NEXT</SectionLabel><h1>Your idea<br/> <span className="gradient-text">starts here.</span></h1><p>A small team, a big question, and the space to build something that matters.</p><div className="registration-facts"><div><Users size={18}/>1–3 members per team</div><div><BrainCircuit size={18}/>AI tools welcome</div><div><Sparkles size={18}/>Every department. Every idea.</div></div><div className="registration-summary"><div><small>ONE TEAM. ONE SIMPLE FEE.</small><strong>PKR 1,500</strong></div><p>The fee covers your entire team.<br/>No hidden charges. No per-member fees.</p></div><div className="registration-summary"><div><small>EVENT DATE</small><Clock3 size={16} color="#9baccc"/></div><p>{formatDate(event.eventDate)}</p><p>GUtech University, Pakistan</p></div></aside><form ref={formRef} className="registration-form" noValidate onSubmit={submit}><div className="form-stepper">{["Team","Members","Payment","Review"].map((s,i)=><div className={`form-step ${i===step?"is-current":i<step?"is-complete":""}`} key={s}><span>{i<step?<Check size={11}/>:i+1}</span>{s}</div>)}</div><div className="form-body" key={step}><h2 className="form-title">{["Meet your next big thing.","Great ideas love good company.","One fee. Your whole team.","Ready for what’s next?"][step]}</h2><p className="form-subtitle">{["Tell us a little about the team behind the idea.","You can go solo or build with up to two teammates.","Transfer PKR 1,500 using the official instructions below.","Review your details. Your payment will be checked by the organizer."][step]}</p>
-    {step===0 && <div className="form-grid">{field("teamName","Team name","What should we call your team?","text",true)}{field("leaderName","Team leader’s full name","Your full name")}{field("email","Email address","you@example.com","email",false,"Any valid email works. No university email needed.")}{field("whatsapp","WhatsApp number","+92 3XX XXXXXXX","tel")}{field("department","Department / program","e.g. Business Administration")}<div className="field field-full"><label id="team-size-label">Team size <span>Including you</span></label><div className="team-size-options" role="group" aria-labelledby="team-size-label">{[1,2,3].map(n=><button type="button" key={n} className={data.teamSize===n?"selected":""} aria-pressed={data.teamSize===n} onClick={()=>setData(prev=>({...prev,teamSize:n,members:Array.from({length:n-1},(_,i)=>prev.members[i]||{name:"",email:""})}))}><Users size={15}/>{n} {n===1?"member":"members"}</button>)}</div></div>{field("password","Create a dashboard password","At least 12 characters","password",true,"Used to securely sign in to your team dashboard. Passwords are never saved in your local draft.")}</div>}
-    {step===1 && <><div className="leader-summary"><span className="avatar">{data.leaderName.slice(0,1).toUpperCase()}</span><div>{data.leaderName}<small>{data.email}</small></div><span>TEAM LEADER</span></div>{data.teamSize===1 ? <div className="solo-state"><User size={32}/><h3>One mind. Endless possibilities.</h3><p>You’re all set to build solo.<br/>You can change your team size in the previous step.</p></div> : data.members.map((member,i)=><div className="member-card" key={i}><h4>TEAM MEMBER 0{i+2}</h4><div className="form-grid">{(["name","email"] as const).map(key=><div className="field field-mobile-full" key={key}><label htmlFor={`member-${i}-${key}`}>{key==="name"?"Full name":"Email address"}</label><input id={`member-${i}-${key}`} type={key==="email"?"email":"text"} placeholder={key==="name"?"Your teammate’s full name":"teammate@example.com"} value={member[key]} maxLength={key==="email"?254:100} aria-invalid={!!fields[`members.${i}.${key}`]} onChange={e=>{const members=data.members.map((m,j)=>j===i?{...m,[key]:e.target.value}:m);change("members",members);}}/>{fields[`members.${i}.${key}`] && <small className="field-error">{fields[`members.${i}.${key}`]}</small>}</div>)}</div></div>)}</>}
-    {step===2 && <>{!state.open ? <div className="notice notice-warning"><Clock3 size={18}/><div><strong>{event.available?"Registration opens soon":"Registration is temporarily unavailable"}</strong><p>{state.reason}</p><p>Keep your team details ready. They’re saved on this device.</p></div></div> : <><div className="notice"><ShieldCheck size={18}/><span>The amount covers the whole team. A receipt alone does not confirm payment; your organizer verifies the transaction.</span></div><div className="payment-methods">{event.paymentMethods.map(m=><button className={`payment-option ${data.methodId===m.id?"selected":""}`} key={m.id} type="button" onClick={()=>change("methodId",m.id)}><span><CreditCard size={15} style={{display:"inline",marginRight:9}}/>{m.name}</span>{data.methodId===m.id&&<CheckCircle2 size={16}/>}</button>)}</div>{method && <div className="payment-instructions"><dl><dt>Account title</dt><dd>{method.accountTitle}</dd><dt>Account / number</dt><dd>{method.accountNumber}</dd><dt>Team fee</dt><dd>PKR 1,500</dd></dl><p>{method.instructions}</p></div>}<div className="form-grid">{field("reference","Transaction / reference ID","The reference from your payment","text",true)}<div className="field field-full"><label htmlFor="receipt">Payment receipt <span>Optional</span></label><input className="file-input" id="receipt" type="file" accept="image/png,image/jpeg,application/pdf" onChange={e=>{const f=e.target.files?.[0]||null;if(f&&f.size>3_000_000){setError("Choose a receipt smaller than 3 MB.");e.target.value="";return;}setReceipt(f);}}/><small>PNG, JPG, or PDF · Up to 3 MB. Receipts are private.</small>{receipt&&<small>Selected: {receipt.name}</small>}</div></div><p className="form-subtitle" style={{marginTop:20,marginBottom:0}}>Refund policy: {event.refundPolicy} {event.supportEmail&&<a className="text-link" href={`mailto:${event.supportEmail}`}>Payment support <ArrowUpRight size={12}/></a>}</p></>}</>}
-    {step===3 && <><div className="review-block"><small>YOUR TEAM</small><h3>{data.teamName}</h3><p>{data.department} · {data.teamSize} {data.teamSize===1?"member":"members"}</p></div><div className="review-block"><small>THE PEOPLE BEHIND THE IDEA</small><p>{data.leaderName} — {data.email} (Leader)</p>{data.members.map(m=><p key={m.email}>{m.name} — {m.email}</p>)}</div><div className="review-block"><small>PAYMENT DETAILS</small><p>{method?.name} · Ref: {data.reference}</p><p>{receipt?`Receipt: ${receipt.name}`:"No receipt attached"}</p></div><div className="review-total"><span>Total team fee <small>(All {data.teamSize} members)</small></span><strong>PKR 1,500</strong></div><div className="notice"><ShieldCheck size={18}/><span>We’ll create a registration ID and set your status to <strong>Payment Pending</strong>. You’re officially confirmed once an organizer verifies your payment.</span></div><label className="check-label"><input type="checkbox" checked={data.agreement} onChange={e=>change("agreement",e.target.checked)}/><span>I have read the <Link href="/rules" target="_blank">event rules</Link> and <Link href="/privacy" target="_blank">privacy & refund information</Link>, and I have my teammates’ consent to register.</span></label></>}
-    <FormMessage error={error}/><div className="form-navigation">{step>0 ? <button type="button" className="button button-quiet" disabled={busy} onClick={()=>{setStep(step-1);setError("");setFields({});}}><ArrowLeft size={14}/>Back</button> : <span className="draft-note"><Save size={11}/>Draft saved on this device</span>}<LoadingButton busy={busy} type="submit" disabled={step===2&&!state.open}>{step===3?"Submit for verification":"Continue"}<ArrowRight size={15}/></LoadingButton></div></div><div className="form-bottom"><span><LockKeyhole size={10} style={{display:"inline",marginRight:4}}/>Your details stay private.</span><button type="button" onClick={()=>{localStorage.removeItem("buildfest-registration-draft");setData(empty);setStep(0);setReceipt(null);setError("");}} style={{fontSize:8,color:"#8498b9"}}>Clear saved draft</button><Link href="/login">Already registered? Sign in ↗</Link></div></form></div>;
+  const errors = (issues: z.core.$ZodIssue[]) => {
+    setFields(
+      Object.fromEntries(issues.map((i) => [i.path.join("."), i.message])),
+    );
+    setError("Please check the highlighted details.");
+    requestAnimationFrame(() =>
+      formRef.current
+        ?.querySelector<HTMLInputElement>("[aria-invalid='true']")
+        ?.focus(),
+    );
+  };
+  const advance = () => {
+    setError("");
+    setFields({});
+    if (step === 0) {
+      const result = detailSchema.safeParse(data);
+      if (!result.success) {
+        errors(result.error.issues);
+        return;
+      }
+    }
+    if (step === 1) {
+      const result = memberSchema.safeParse(data);
+      if (!result.success) {
+        errors(result.error.issues);
+        return;
+      }
+      const emails = [
+        data.email.toLowerCase().trim(),
+        ...data.members.map((m) => m.email.toLowerCase().trim()),
+      ];
+      if (new Set(emails).size !== emails.length) {
+        setError("Every participant needs a different email address.");
+        return;
+      }
+    }
+    if (step === 2) {
+      if (!state.open) {
+        setError(state.reason);
+        return;
+      }
+      if (!method || data.reference.trim().length < 3) {
+        setFields({
+          reference: !data.reference
+            ? "Enter your transaction or reference ID."
+            : "",
+        });
+        setError("Select a payment method and add your transaction reference.");
+        return;
+      }
+    }
+    setStep(step + 1);
+  };
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (step < 3) {
+      advance();
+      return;
+    }
+    const parsed = registrationSchema.safeParse(data);
+    if (!parsed.success) {
+      errors(parsed.error.issues);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("data", JSON.stringify(parsed.data));
+      if (receipt) form.append("receipt", receipt);
+      const result = await api<{ redirect: string }>(
+        "/api/register",
+        "POST",
+        form,
+      );
+      localStorage.removeItem("buildfest-registration-draft");
+      router.push(result.redirect);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const field = (
+    key: keyof Draft,
+    label: string,
+    placeholder: string,
+    type = "text",
+    full = false,
+    hint?: string,
+  ) => (
+    <div className={`field ${full ? "field-full" : "field-mobile-full"}`}>
+      <label htmlFor={key}>{label}</label>
+      <input
+        id={key}
+        name={key}
+        value={String(data[key])}
+        onChange={(e) => change(key, e.target.value)}
+        type={type}
+        placeholder={placeholder}
+        autoComplete={
+          key === "email"
+            ? "email"
+            : key === "password"
+              ? "new-password"
+              : key === "leaderName"
+                ? "name"
+                : key === "whatsapp"
+                  ? "tel"
+                  : "off"
+        }
+        aria-invalid={!!fields[key]}
+        aria-describedby={
+          fields[key] ? `${key}-error` : hint ? `${key}-hint` : undefined
+        }
+        maxLength={key === "password" ? 128 : key === "email" ? 254 : 100}
+      />
+      {fields[key] && (
+        <small className="field-error" id={`${key}-error`}>
+          {fields[key]}
+        </small>
+      )}
+      {hint && <small id={`${key}-hint`}>{hint}</small>}
+    </div>
+  );
+  return (
+    <div className="container registration-layout">
+      <aside className="registration-aside">
+        <SectionLabel>YOUR FIRST STEP INTO WHAT’S NEXT</SectionLabel>
+        <h1>
+          Your idea
+          <br /> <span className="gradient-text">starts here.</span>
+        </h1>
+        <p>
+          A small team, a big question, and the space to build something that
+          matters.
+        </p>
+        <div className="registration-facts">
+          <div>
+            <Users size={18} />
+            1–3 members per team
+          </div>
+          <div>
+            <BrainCircuit size={18} />
+            AI tools welcome
+          </div>
+          <div>
+            <Sparkles size={18} />
+            Every department. Every idea.
+          </div>
+        </div>
+        <div className="registration-summary">
+          <div>
+            <small>ONE TEAM. ONE SIMPLE FEE.</small>
+            <strong>PKR 1,500</strong>
+          </div>
+          <p>
+            The fee covers your entire team.
+            <br />
+            No hidden charges. No per-member fees.
+          </p>
+        </div>
+        <div className="registration-summary">
+          <div>
+            <small>EVENT DATE</small>
+            <Clock3 size={16} color="#9baccc" />
+          </div>
+          <p>{formatDate(event.eventDate)}</p>
+          <p>GUtech University, Pakistan</p>
+        </div>
+      </aside>
+      <form
+        ref={formRef}
+        className="registration-form"
+        noValidate
+        onSubmit={submit}
+      >
+        <div className="form-stepper">
+          {["Team", "Members", "Payment", "Review"].map((s, i) => (
+            <div
+              className={`form-step ${i === step ? "is-current" : i < step ? "is-complete" : ""}`}
+              key={s}
+            >
+              <span>{i < step ? <Check size={11} /> : i + 1}</span>
+              {s}
+            </div>
+          ))}
+        </div>
+        <div className="form-body" key={step}>
+          <h2 className="form-title">
+            {
+              [
+                "Meet your next big thing.",
+                "Great ideas love good company.",
+                "One fee. Your whole team.",
+                "Ready for what’s next?",
+              ][step]
+            }
+          </h2>
+          <p className="form-subtitle">
+            {
+              [
+                "Tell us a little about the team behind the idea.",
+                "You can go solo or build with up to two teammates.",
+                "Transfer PKR 1,500 using the official instructions below.",
+                "Review your details. Your payment will be checked by the organizer.",
+              ][step]
+            }
+          </p>
+          {step === 0 && (
+            <div className="form-grid">
+              {field(
+                "teamName",
+                "Team name",
+                "What should we call your team?",
+                "text",
+                true,
+              )}
+              {field("leaderName", "Team leader’s full name", "Your full name")}
+              {field(
+                "email",
+                "Email address",
+                "you@example.com",
+                "email",
+                false,
+                "Any valid email works. No university email needed.",
+              )}
+              {field("whatsapp", "WhatsApp number", "+92 3XX XXXXXXX", "tel")}
+              {field(
+                "department",
+                "Department / program",
+                "e.g. Business Administration",
+              )}
+              <div className="field field-full">
+                <label id="team-size-label">
+                  Team size <span>Including you</span>
+                </label>
+                <div
+                  className="team-size-options"
+                  role="group"
+                  aria-labelledby="team-size-label"
+                >
+                  {[1, 2, 3].map((n) => (
+                    <button
+                      type="button"
+                      key={n}
+                      className={data.teamSize === n ? "selected" : ""}
+                      aria-pressed={data.teamSize === n}
+                      onClick={() =>
+                        setData((prev) => ({
+                          ...prev,
+                          teamSize: n,
+                          members: Array.from(
+                            { length: n - 1 },
+                            (_, i) =>
+                              prev.members[i] || { name: "", email: "" },
+                          ),
+                        }))
+                      }
+                    >
+                      <Users size={15} />
+                      {n} {n === 1 ? "member" : "members"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {field(
+                "password",
+                "Create a dashboard password",
+                "At least 12 characters",
+                "password",
+                true,
+                "Used to securely sign in to your team dashboard. Passwords are never saved in your local draft.",
+              )}
+            </div>
+          )}
+          {step === 1 && (
+            <>
+              <div className="leader-summary">
+                <span className="avatar">
+                  {data.leaderName.slice(0, 1).toUpperCase()}
+                </span>
+                <div>
+                  {data.leaderName}
+                  <small>{data.email}</small>
+                </div>
+                <span>TEAM LEADER</span>
+              </div>
+              {data.teamSize === 1 ? (
+                <div className="solo-state">
+                  <User size={32} />
+                  <h3>One mind. Endless possibilities.</h3>
+                  <p>
+                    You’re all set to build solo.
+                    <br />
+                    You can change your team size in the previous step.
+                  </p>
+                </div>
+              ) : (
+                data.members.map((member, i) => (
+                  <div className="member-card" key={i}>
+                    <h4>TEAM MEMBER 0{i + 2}</h4>
+                    <div className="form-grid">
+                      {(["name", "email"] as const).map((key) => (
+                        <div className="field field-mobile-full" key={key}>
+                          <label htmlFor={`member-${i}-${key}`}>
+                            {key === "name" ? "Full name" : "Email address"}
+                          </label>
+                          <input
+                            id={`member-${i}-${key}`}
+                            type={key === "email" ? "email" : "text"}
+                            placeholder={
+                              key === "name"
+                                ? "Your teammate’s full name"
+                                : "teammate@example.com"
+                            }
+                            value={member[key]}
+                            maxLength={key === "email" ? 254 : 100}
+                            aria-invalid={!!fields[`members.${i}.${key}`]}
+                            onChange={(e) => {
+                              const members = data.members.map((m, j) =>
+                                j === i ? { ...m, [key]: e.target.value } : m,
+                              );
+                              change("members", members);
+                            }}
+                          />
+                          {fields[`members.${i}.${key}`] && (
+                            <small className="field-error">
+                              {fields[`members.${i}.${key}`]}
+                            </small>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+          {step === 2 && (
+            <>
+              {!state.open ? (
+                <div className="notice notice-warning">
+                  <Clock3 size={18} />
+                  <div>
+                    <strong>
+                      {event.available
+                        ? "Registration opens soon"
+                        : "Registration is temporarily unavailable"}
+                    </strong>
+                    <p>{state.reason}</p>
+                    <p>
+                      Keep your team details ready. They’re saved on this
+                      device.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="notice">
+                    <ShieldCheck size={18} />
+                    <span>
+                      The amount covers the whole team. A receipt alone does not
+                      confirm payment; your organizer verifies the transaction.
+                    </span>
+                  </div>
+                  <div className="payment-methods">
+                    {event.paymentMethods.map((m) => (
+                      <button
+                        className={`payment-option ${data.methodId === m.id ? "selected" : ""}`}
+                        key={m.id}
+                        type="button"
+                        onClick={() => change("methodId", m.id)}
+                      >
+                        <span>
+                          <CreditCard
+                            size={15}
+                            style={{ display: "inline", marginRight: 9 }}
+                          />
+                          {m.name}
+                        </span>
+                        {data.methodId === m.id && <CheckCircle2 size={16} />}
+                      </button>
+                    ))}
+                  </div>
+                  {method && (
+                    <div className="payment-instructions">
+                      <dl>
+                        <dt>Account title</dt>
+                        <dd>{method.accountTitle}</dd>
+                        <dt>Account / number</dt>
+                        <dd>{method.accountNumber}</dd>
+                        <dt>Team fee</dt>
+                        <dd>PKR 1,500</dd>
+                      </dl>
+                      <p>{method.instructions}</p>
+                    </div>
+                  )}
+                  <div className="form-grid">
+                    {field(
+                      "reference",
+                      "Transaction / reference ID",
+                      "The reference from your payment",
+                      "text",
+                      true,
+                    )}
+                    <div className="field field-full">
+                      <label htmlFor="receipt">
+                        Payment receipt <span>Optional</span>
+                      </label>
+                      <input
+                        className="file-input"
+                        id="receipt"
+                        type="file"
+                        accept="image/png,image/jpeg,application/pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] || null;
+                          if (f && f.size > 3_000_000) {
+                            setError("Choose a receipt smaller than 3 MB.");
+                            e.target.value = "";
+                            return;
+                          }
+                          setReceipt(f);
+                        }}
+                      />
+                      <small>
+                        PNG, JPG, or PDF · Up to 3 MB. Receipts are private.
+                      </small>
+                      {receipt && <small>Selected: {receipt.name}</small>}
+                    </div>
+                  </div>
+                  <p
+                    className="form-subtitle"
+                    style={{ marginTop: 20, marginBottom: 0 }}
+                  >
+                    Refund policy: {event.refundPolicy}{" "}
+                    {event.supportEmail && (
+                      <a
+                        className="text-link"
+                        href={`mailto:${event.supportEmail}`}
+                      >
+                        Payment support <ArrowUpRight size={12} />
+                      </a>
+                    )}
+                  </p>
+                </>
+              )}
+            </>
+          )}
+          {step === 3 && (
+            <>
+              <div className="review-block">
+                <small>YOUR TEAM</small>
+                <h3>{data.teamName}</h3>
+                <p>
+                  {data.department} · {data.teamSize}{" "}
+                  {data.teamSize === 1 ? "member" : "members"}
+                </p>
+              </div>
+              <div className="review-block">
+                <small>THE PEOPLE BEHIND THE IDEA</small>
+                <p>
+                  {data.leaderName} — {data.email} (Leader)
+                </p>
+                {data.members.map((m) => (
+                  <p key={m.email}>
+                    {m.name} — {m.email}
+                  </p>
+                ))}
+              </div>
+              <div className="review-block">
+                <small>PAYMENT DETAILS</small>
+                <p>
+                  {method?.name} · Ref: {data.reference}
+                </p>
+                <p>
+                  {receipt ? `Receipt: ${receipt.name}` : "No receipt attached"}
+                </p>
+              </div>
+              <div className="review-total">
+                <span>
+                  Total team fee <small>(All {data.teamSize} members)</small>
+                </span>
+                <strong>PKR 1,500</strong>
+              </div>
+              <div className="notice">
+                <ShieldCheck size={18} />
+                <span>
+                  We’ll create a registration ID and set your status to{" "}
+                  <strong>Payment Pending</strong>. You’re officially confirmed
+                  once an organizer verifies your payment.
+                </span>
+              </div>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={data.agreement}
+                  onChange={(e) => change("agreement", e.target.checked)}
+                />
+                <span>
+                  I have read the{" "}
+                  <Link href="/rules" target="_blank">
+                    event rules
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" target="_blank">
+                    privacy & refund information
+                  </Link>
+                  , and I have my teammates’ consent to register.
+                </span>
+              </label>
+            </>
+          )}
+          <FormMessage error={error} />
+          <div className="form-navigation">
+            {step > 0 ? (
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={busy}
+                onClick={() => {
+                  setStep(step - 1);
+                  setError("");
+                  setFields({});
+                }}
+              >
+                <ArrowLeft size={14} />
+                Back
+              </button>
+            ) : (
+              <span className="draft-note">
+                <Save size={11} />
+                Draft saved on this device
+              </span>
+            )}
+            <LoadingButton
+              busy={busy}
+              type="submit"
+              disabled={step === 2 && !state.open}
+            >
+              {step === 3 ? "Submit for verification" : "Continue"}
+              <ArrowRight size={15} />
+            </LoadingButton>
+          </div>
+        </div>
+        <div className="form-bottom">
+          <span>
+            <LockKeyhole
+              size={10}
+              style={{ display: "inline", marginRight: 4 }}
+            />
+            Your details stay private.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem("buildfest-registration-draft");
+              setData(empty);
+              setStep(0);
+              setReceipt(null);
+              setError("");
+            }}
+            style={{ fontSize: 8, color: "#8498b9" }}
+          >
+            Clear saved draft
+          </button>
+          <Link href="/login">Already registered? Sign in ↗</Link>
+        </div>
+      </form>
+    </div>
+  );
 }
