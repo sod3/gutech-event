@@ -191,7 +191,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
       {team.payment.receiptId ? (
         <a
           className="text-link"
-          style={{ fontSize: 10 }}
+          style={{ fontSize: 12 }}
           href={`/api/files/${team.payment.receiptId}`}
           target="_blank"
           rel="noopener noreferrer"
@@ -199,7 +199,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           Download private receipt <Download size={13} />
         </a>
       ) : (
-        <p style={{ fontSize: 9, color: "#9aacc8" }}>
+        <p style={{ fontSize: 12, color: "var(--foreground)" }}>
           No receipt attached. Verify the transaction in the receiving account.
         </p>
       )}
@@ -483,7 +483,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 <Wallet size={17} />
               </div>
               <strong>
-                <span style={{ fontSize: 11, letterSpacing: 0 }}>PKR </span>
+                <span style={{ fontSize: 12, letterSpacing: 0 }}>PKR </span>
                 {confirmed
                   .reduce((s, t) => s + t.payment.amount, 0)
                   .toLocaleString()}
@@ -506,7 +506,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               </p>
               <button
                 className="text-link"
-                style={{ fontSize: 10, marginTop: 15 }}
+                style={{ fontSize: 12, marginTop: 15 }}
                 onClick={() => setTab("settings")}
               >
                 Manage event configuration <ArrowUpRight size={12} />
@@ -679,7 +679,13 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 />
               </div>
               <h3 style={{ marginTop: 27 }}>Official partner logos</h3>
-              <p style={{ fontSize: 9, color: "#9aaccc", lineHeight: 1.8 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--foreground)",
+                  lineHeight: 1.8,
+                }}
+              >
                 Upload organizer-approved PNG or JPEG logos. They are stored in
                 MongoDB. Text attribution is used until official logos are
                 supplied.
@@ -1200,7 +1206,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                     </p>
                     <button
                       className="text-link"
-                      style={{ fontSize: 8, marginTop: 8 }}
+                      style={{ fontSize: 12, marginTop: 8 }}
                       onClick={() => setSelected(t)}
                     >
                       View project <ArrowUpRight size={10} />
@@ -1224,8 +1230,8 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                             <button
                               key={a.judgeId}
                               style={{
-                                fontSize: 8,
-                                color: "#87a0c7",
+                                fontSize: 12,
+                                color: "var(--foreground)",
                                 border: "1px solid #e3ebf7",
                                 borderRadius: 4,
                                 padding: "4px 6px",
@@ -1435,7 +1441,13 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 <h2>Publish approved results</h2>
                 <Trophy size={16} />
               </div>
-              <p style={{ fontSize: 11, lineHeight: 1.9, color: "#98accb" }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.9,
+                  color: "var(--foreground)",
+                }}
+              >
                 Results use the average total from all assigned judges. Every
                 final project must have at least one judge and all assigned
                 scorecards complete. Equal scores share the same rank.
@@ -1498,7 +1510,10 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               }}
             >
               {data.mail.statuses.map((s) => (
-                <span key={s._id} style={{ fontSize: 10, color: "#93a6c7" }}>
+                <span
+                  key={s._id}
+                  style={{ fontSize: 12, color: "var(--foreground)" }}
+                >
                   {s._id}: <strong>{s.count}</strong>
                 </span>
               ))}

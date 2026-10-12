@@ -55,7 +55,7 @@ export function Workspace({
             </p>
             <Link
               className="text-link"
-              style={{ fontSize: 8, marginTop: 12 }}
+              style={{ fontSize: 12, marginTop: 12 }}
               href="/"
             >
               Visit event website <ArrowUpRight size={11} />

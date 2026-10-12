@@ -39,7 +39,9 @@ export function Ticket({
           <small>YOUR UNIQUE REGISTRATION ID</small>
           <strong>{team.registrationId}</strong>
         </div>
-        <h3 style={{ color: "#718bae", fontSize: 21, fontWeight: 550 }}>
+        <h3
+          style={{ color: "var(--foreground)", fontSize: 21, fontWeight: 550 }}
+        >
           {team.name}
         </h3>
         <p>{team.members.map((m) => m.name).join(" · ")}</p>
@@ -52,7 +54,7 @@ export function Ticket({
           </span>
         </div>
         <p>Event date: {formatDate(event.eventDate)}</p>
-        <p style={{ fontSize: 10 }}>
+        <p style={{ fontSize: 12 }}>
           Organized by GUtech Entrepreneurship Society
           <br />
           Powered by ArtDera

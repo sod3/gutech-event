@@ -122,7 +122,7 @@ export function Judge({ name }: { name: string }) {
                   </div>
                   <button
                     className="text-link"
-                    style={{ fontSize: 10 }}
+                    style={{ fontSize: 12 }}
                     onClick={() => choose(t.id)}
                   >
                     {data.scores.some((s) => s.teamId === t.id)
@@ -226,7 +226,7 @@ export function Judge({ name }: { name: string }) {
                   <span>Total score</span>
                   <strong>
                     {scores.reduce((a, b) => a + b, 0)}
-                    <small style={{ fontSize: 11 }}> / 100</small>
+                    <small style={{ fontSize: 12 }}> / 100</small>
                   </strong>
                 </div>
                 <div className="field" style={{ marginTop: 20 }}>

@@ -700,7 +700,7 @@ export function Registration({ event }: { event: PublicEvent }) {
               setReceipt(null);
               setError("");
             }}
-            style={{ fontSize: 8, color: "#8498b9" }}
+            style={{ fontSize: 12, color: "var(--foreground)" }}
           >
             Clear saved draft
           </button>

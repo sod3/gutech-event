@@ -102,7 +102,10 @@ export function Login({
             Only the team leader has dashboard access. Need help accessing your
             account?{" "}
             {supportEmail ? (
-              <a href={`mailto:${supportEmail}`} style={{ color: "#7896c6" }}>
+              <a
+                href={`mailto:${supportEmail}`}
+                style={{ color: "var(--foreground)" }}
+              >
                 Contact the organizer.
               </a>
             ) : (

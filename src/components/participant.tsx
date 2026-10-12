@@ -236,7 +236,7 @@ export function Participant({
                 <Link
                   href="/dashboard/confirmation"
                   className="text-link"
-                  style={{ marginTop: 17, fontSize: 10 }}
+                  style={{ marginTop: 17, fontSize: 12 }}
                 >
                   View registration confirmation <ArrowUpRight size={13} />
                 </Link>
@@ -286,7 +286,7 @@ export function Participant({
               {team.payment.status === "rejected" && (
                 <button
                   className="text-link"
-                  style={{ marginTop: 15, fontSize: 10 }}
+                  style={{ marginTop: 15, fontSize: 12 }}
                   onClick={() => changeTab("team")}
                 >
                   Resolve payment details <ArrowRight size={12} />
@@ -311,7 +311,7 @@ export function Participant({
               </p>
               <button
                 className="text-link"
-                style={{ marginTop: 18, fontSize: 10 }}
+                style={{ marginTop: 18, fontSize: 12 }}
                 onClick={() => changeTab("project")}
               >
                 Open your project <ArrowRight size={13} />
@@ -458,7 +458,7 @@ export function Participant({
                 {submission.deckFileId && (
                   <a
                     className="text-link"
-                    style={{ fontSize: 9 }}
+                    style={{ fontSize: 12 }}
                     href={`/api/files/${submission.deckFileId}`}
                   >
                     Download saved pitch deck <Download size={12} />
@@ -557,7 +557,13 @@ export function Participant({
                 <h2>Share the adventure.</h2>
                 <Link2 size={16} />
               </div>
-              <p style={{ fontSize: 10, color: "#9aabc6", lineHeight: 1.9 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--foreground)",
+                  lineHeight: 1.9,
+                }}
+              >
                 Share your team’s private invitation link with your teammates.
                 This link shows only your team name and status.
               </p>
@@ -583,7 +589,7 @@ export function Participant({
               </div>
               <a
                 className="text-link"
-                style={{ fontSize: 10, marginTop: 18 }}
+                style={{ fontSize: 12, marginTop: 18 }}
                 href={`https://wa.me/?text=${encodeURIComponent(`We’re building something at BuildFest 2026. Here’s our team ${team.name}: ${invite}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -618,7 +624,7 @@ export function Participant({
               {confirmed && (
                 <Link
                   className="text-link"
-                  style={{ fontSize: 10, marginTop: 23 }}
+                  style={{ fontSize: 12, marginTop: 23 }}
                   href="/dashboard/confirmation"
                 >
                   View / print confirmation <Download size={13} />
