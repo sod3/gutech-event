@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { MongoClient, ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
@@ -16,6 +16,9 @@ const client = new MongoClient(process.env.MONGODB_URI, {
 });
 await client.connect();
 const db = client.db(testDbName);
+await db
+  .collection("teams")
+  .createIndex({ "payment.referenceKey": 1 }, { unique: true });
 const prodBefore = await client
   .db(prodDbName)
   .collection("teams")
@@ -23,17 +26,51 @@ const prodBefore = await client
 const password = `Verification-${suffix}`;
 const adminEmail = `admin-${suffix}@example.test`;
 const adminId = new ObjectId();
-await db
-  .collection("users")
-  .insertOne({
-    _id: adminId,
-    email: adminEmail,
-    name: "Verification Organizer",
-    passwordHash: await bcrypt.hash(password, 12),
-    role: "admin",
-    disabled: false,
-    createdAt: new Date(),
-  });
+await db.collection("users").insertOne({
+  _id: adminId,
+  email: adminEmail,
+  name: "Verification Organizer",
+  passwordHash: await bcrypt.hash(password, 12),
+  role: "admin",
+  disabled: false,
+  createdAt: new Date(),
+});
+const legacyId = new ObjectId();
+const legacyPayment = {
+  status: "confirmed",
+  amount: 1500,
+  methodId: "legacy-bank",
+  reference: "LEGACY-REFERENCE",
+  referenceKey: "legacy-bank:legacyreference",
+  note: "Historical payment verified",
+  submittedAt: new Date(),
+  reviewedAt: new Date(),
+};
+await db.collection("teams").insertOne({
+  _id: legacyId,
+  registrationId: "BF26-LEGACY",
+  name: "Legacy Team",
+  nameKey: "legacy team",
+  leaderId: adminId,
+  members: [{ name: "Legacy Leader", email: `legacy-${suffix}@example.test` }],
+  whatsapp: "+923001234567",
+  department: "Legacy program",
+  payment: legacyPayment,
+  submission: {
+    title: "",
+    problem: "",
+    solution: "",
+    research: "",
+    mvpUrl: "",
+    pitchUrl: "",
+    aiTools: "",
+    aiDeclaration: false,
+    final: false,
+  },
+  checklist: [],
+  inviteToken: randomBytes(32).toString("base64url"),
+  createdAt: new Date(),
+});
 const server = spawn(
   process.execPath,
   ["node_modules/next/dist/bin/next", "start", "-p", String(port)],
@@ -103,15 +140,6 @@ function form(data, receipt) {
   if (receipt) f.set("receipt", receipt, "receipt.png");
   return f;
 }
-const png = new Blob(
-  [
-    Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j7ZkAAAAASUVORK5CYII=",
-      "base64",
-    ),
-  ],
-  { type: "image/png" },
-);
 const registration = {
   teamName: "Verification Team One",
   leaderName: "Test Leader",
@@ -124,8 +152,8 @@ const registration = {
     { name: "Test Member Two", email: `member2-${suffix}@example.test` },
     { name: "Test Member Three", email: `member3-${suffix}@example.test` },
   ],
-  methodId: "verification-bank",
-  reference: `TEST-${suffix}`,
+  requestId: randomUUID(),
+  whatsappConsent: true,
   agreement: true,
 };
 const future = new Date(Date.now() + 86400_000).toISOString(),
@@ -136,16 +164,7 @@ const settings = {
   registrationDeadline: future,
   submissionDeadline: later,
   phaseDates: ["", "", "", "", ""],
-  paymentMethods: [
-    {
-      id: "verification-bank",
-      name: "Test transfer (verification only)",
-      accountTitle: "Test account",
-      accountNumber: "TEST-ACCOUNT-NOT-FOR-PAYMENT",
-      instructions: "Isolated verification database. No real payment.",
-      enabled: true,
-    },
-  ],
+  paymentMethods: [],
   prizes: [],
   people: [],
   supportEmail: "verification@example.test",
@@ -159,7 +178,9 @@ async function cleanup() {
     console.log(`Cleaned isolated verification database ${testDbName}.`);
   }
   check(
-    "production participant records unchanged",
+    process.env.VERIFY_LOCAL_DATABASE
+      ? "unrelated local database remains unchanged"
+      : "production participant records unchanged",
     (await client.db(prodDbName).collection("teams").countDocuments()) ===
       prodBefore,
   );
@@ -210,7 +231,7 @@ try {
     (
       await admin("/api/admin/settings", "PUT", {
         ...settings,
-        paymentMethods: [],
+        registrationDeadline: "",
       })
     ).status === 400,
   );
@@ -218,17 +239,134 @@ try {
     "official event settings persist",
     (await admin("/api/admin/settings", "PUT", settings)).status === 200,
   );
+  const legacy = (await admin("/api/admin")).data.teams.find(
+    (t) => t.id === legacyId.toString(),
+  );
   check(
-    "registration accepts non-university emails",
-    (await leader("/api/register", "POST", form(registration, png))).status ===
-      201,
+    "existing paid teams retain confirmed access",
+    legacy.registrationStatus === "confirmed",
+  );
+  check(
+    "historical payment details survive schema/index migration",
+    (await db.collection("teams").findOne({ _id: legacyId })).payment
+      .referenceKey === legacyPayment.referenceKey,
+  );
+  await db.collection("teams").deleteOne({ _id: legacyId });
+  const submissions = await Promise.all([
+    leader("/api/register", "POST", form(registration)),
+    makeClient()("/api/register", "POST", form(registration)),
+  ]);
+  check(
+    "registration accepts non-university emails without payment",
+    submissions.some((r) => r.status === 201) &&
+      submissions.every((r) => r.status === 201 || r.status === 200),
+  );
+  check(
+    "concurrent first submissions save exactly once",
+    submissions.filter((r) => r.status === 201).length === 1 &&
+      (await db.collection("teams").countDocuments()) === 1 &&
+      (await db
+        .collection("audit")
+        .countDocuments({ action: "registration_submitted" })) === 1,
   );
   let team = (await leader("/api/team")).data.team;
   check(
-    "new registration remains payment pending",
-    team.payment.status === "pending",
+    "new registration awaits organizer contact without recording payment",
+    team.registrationStatus === "new" &&
+      team.payment.status === "pending" &&
+      !team.payment.reference &&
+      !team.payment.receiptId,
   );
   check("three participants persist", team.members.length === 3);
+  check(
+    "success page reads persisted registration",
+    (await leader("/register/success")).status === 200 &&
+      (await leader("/register/success")).data.includes(team.registrationId),
+  );
+  check(
+    "guest cannot access success data",
+    (await guest("/register/success")).status === 307,
+  );
+  check(
+    "admin immediately sees full registration",
+    (await admin("/api/admin")).data.teams.some(
+      (t) =>
+        t.registrationId === team.registrationId &&
+        t.members.length === 3 &&
+        t.whatsapp === "+923000000000" &&
+        t.registrationStatus === "new" &&
+        t.whatsappConsent,
+    ),
+  );
+  check(
+    "saved registration survives a new login",
+    (
+      await leader("/api/auth/login", "POST", {
+        email: registration.email,
+        password,
+      })
+    ).status === 200 &&
+      (await leader("/api/team")).data.team.registrationId ===
+        team.registrationId,
+  );
+  check(
+    "WhatsApp consent enforced",
+    (
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form({
+          ...registration,
+          requestId: randomUUID(),
+          whatsappConsent: false,
+        }),
+      )
+    ).status === 400,
+  );
+  check(
+    "member count must match team size",
+    (
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form({ ...registration, requestId: randomUUID(), teamSize: 2 }),
+      )
+    ).status === 400,
+  );
+  check(
+    "malformed WhatsApp number rejected",
+    (
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form({
+          ...registration,
+          requestId: randomUUID(),
+          whatsapp: "1234567890",
+        }),
+      )
+    ).status === 400,
+  );
+  check(
+    "team leader cannot update registration status",
+    (
+      await leader("/api/admin/registrations", "PATCH", {
+        teamId: team.id,
+        status: "confirmed",
+        expectedStatus: "new",
+        expectedNotes: "",
+        internalNotes: "",
+      })
+    ).status === 403,
+  );
+  const publicBefore = JSON.stringify((await guest("/api/event")).data);
+  check(
+    "public event contains no team contact details",
+    !publicBefore.includes(registration.email) &&
+      !publicBefore.includes(registration.whatsapp) &&
+      !publicBefore.includes("member2-"),
+  );
+
   check(
     "passwords never appear in participant response",
     !JSON.stringify(team).includes(password),
@@ -255,8 +393,9 @@ try {
     (await leader("/api/team", "PATCH", { submission })).status === 403,
   );
   check(
-    "duplicate registration prevented",
-    (await guest("/api/register", "POST", form(registration))).status === 409,
+    "registration retry returns the saved record",
+    (await makeClient()("/api/register", "POST", form(registration))).status ===
+      200 && (await db.collection("teams").countDocuments()) === 1,
   );
   check(
     "duplicate member email prevented",
@@ -267,27 +406,47 @@ try {
         form({
           ...registration,
           teamName: "Duplicate member verification",
+          requestId: randomUUID(),
           email: `new-${suffix}@example.test`,
-          reference: `OTHER-${suffix}`,
         }),
       )
     ).status === 409,
   );
   check(
-    "duplicate payment reference prevented",
+    "duplicate team name rejected",
     (
       await makeClient()(
         "/api/register",
         "POST",
         form({
           ...registration,
-          teamName: "Duplicate reference verification",
-          email: `ref-${suffix}@example.test`,
-          teamSize: 1,
+          requestId: randomUUID(),
+          email: `name-${suffix}@example.test`,
           members: [],
+          teamSize: 1,
         }),
       )
     ).status === 409,
+  );
+  check(
+    "idempotency key cannot expose a registration",
+    (
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form({ ...registration, password: "different-secure-password" }),
+      )
+    ).status === 409,
+  );
+  check(
+    "concurrent repeated submissions create one team",
+    (
+      await Promise.all([
+        makeClient()("/api/register", "POST", form(registration)),
+        makeClient()("/api/register", "POST", form(registration)),
+      ])
+    ).every((r) => r.status === 200) &&
+      (await db.collection("teams").countDocuments()) === 1,
   );
   check(
     "more than three participants rejected",
@@ -300,79 +459,75 @@ try {
     ).status === 400,
   );
   check(
-    "payment rejection requires explanation",
+    "admin marks a team contacted and saves internal notes",
     (
-      await admin("/api/admin/payments", "POST", {
+      await admin("/api/admin/registrations", "PATCH", {
         teamId: team.id,
-        status: "rejected",
-        note: "",
-      })
-    ).status === 400,
-  );
-  check(
-    "organizer can reject payment",
-    (
-      await admin("/api/admin/payments", "POST", {
-        teamId: team.id,
-        status: "rejected",
-        note: "Reference needs correction (verification only).",
+        status: "contacted",
+        expectedStatus: "new",
+        expectedNotes: "",
+        internalNotes: "WhatsApp follow-up started.",
       })
     ).status === 200,
   );
   check(
-    "leader can resubmit rejected payment",
-    (
-      await leader(
-        "/api/team/payment",
-        "POST",
-        form({
-          methodId: settings.paymentMethods[0].id,
-          reference: `CORRECTED-${suffix}`,
-        }),
-      )
-    ).status === 200,
+    "internal notes persist in admin only",
+    (await admin("/api/admin")).data.teams.find((t) => t.id === team.id)
+      .internalNotes === "WhatsApp follow-up started." &&
+      !("internalNotes" in (await leader("/api/team")).data.team),
   );
   check(
-    "pending payment cannot be resubmitted twice",
+    "stale organizer edits cannot overwrite notes",
     (
-      await leader(
-        "/api/team/payment",
-        "POST",
-        form({
-          methodId: settings.paymentMethods[0].id,
-          reference: `CORRECTED-${suffix}`,
-        }),
-      )
+      await admin("/api/admin/registrations", "PATCH", {
+        teamId: team.id,
+        status: "new",
+        expectedStatus: "new",
+        expectedNotes: "",
+        internalNotes: "stale",
+      })
     ).status === 409,
   );
+  check(
+    "admin sets awaiting confirmation",
+    (
+      await admin("/api/admin/registrations", "PATCH", {
+        teamId: team.id,
+        status: "awaiting_confirmation",
+        expectedStatus: "contacted",
+        expectedNotes: "WhatsApp follow-up started.",
+        internalNotes: "Shared next steps.",
+      })
+    ).status === 200,
+  );
+  const review = {
+    teamId: team.id,
+    status: "confirmed",
+    expectedStatus: "awaiting_confirmation",
+    expectedNotes: "Shared next steps.",
+    internalNotes: "Organizer approved registration.",
+  };
   const reviews = await Promise.all([
-    admin("/api/admin/payments", "POST", {
-      teamId: team.id,
-      status: "confirmed",
-      note: "Verified test reference.",
-    }),
-    admin("/api/admin/payments", "POST", {
-      teamId: team.id,
-      status: "confirmed",
-      note: "Verified test reference.",
-    }),
+    admin("/api/admin/registrations", "PATCH", review),
+    admin("/api/admin/registrations", "PATCH", review),
   ]);
   check(
-    "concurrent payment approval happens once",
+    "concurrent manual confirmation happens once",
     reviews.filter((r) => r.status === 200).length === 1 &&
       reviews.filter((r) => r.status === 409).length === 1,
   );
   team = (await leader("/api/team")).data.team;
   check(
-    "verified payment confirms registration",
-    team.payment.status === "confirmed",
+    "manual confirmation never marks a team paid",
+    team.registrationStatus === "confirmed" &&
+      team.payment.status === "pending",
   );
   check(
     "one confirmation audit record",
-    (await db
-      .collection("audit")
-      .countDocuments({ action: "payment_reviewed", after: "confirmed" })) ===
-      1,
+    (await db.collection("audit").countDocuments({
+      action: "registration_updated",
+      after: "confirmed",
+    })) === 1,
   );
   check(
     "emails queued once for all three members",
@@ -390,23 +545,31 @@ try {
     email: `other-${suffix}@example.test`,
     members: [],
     teamSize: 1,
-    reference: `SECOND-${suffix}`,
+    requestId: randomUUID(),
+    whatsapp: "03001234567",
   };
   check(
     "second independent team can register",
     (await other("/api/register", "POST", form(second))).status === 201,
   );
   check(
-    "receipt denied to unauthenticated visitors",
-    (await guest(`/api/files/${team.payment.receiptId}`)).status === 401,
+    "two payment-free registrations persist",
+    (await db.collection("teams").countDocuments()) === 2,
   );
   check(
-    "receipt denied to a different team",
-    (await other(`/api/files/${team.payment.receiptId}`)).status === 403,
+    "Pakistani local number normalizes internationally",
+    (await other("/api/team")).data.team.whatsapp === "+923001234567",
   );
   check(
-    "organizer can download private receipt",
-    (await admin(`/api/files/${team.payment.receiptId}`)).status === 200,
+    "obsolete payment upload endpoint removed",
+    [410].includes(
+      (await leader("/api/team/payment", "POST", form({ reference: "OLD" })))
+        .status,
+    ),
+  );
+  check(
+    "obsolete payment review endpoint removed",
+    [410].includes((await admin("/api/admin/payments", "POST", {})).status),
   );
   check(
     "confirmed team can save a project draft",
@@ -513,8 +676,12 @@ try {
       !JSON.stringify(judgeView).includes(registration.email),
   );
   check(
-    "judge cannot access payment receipt",
-    (await judge(`/api/files/${team.payment.receiptId}`)).status === 403,
+    "private pitch deck denied to visitors",
+    (await guest(`/api/files/${deckId}`)).status === 401,
+  );
+  check(
+    "private pitch deck denied to other teams",
+    (await other(`/api/files/${deckId}`)).status === 403,
   );
   check(
     "assigned judge can download pitch deck",
@@ -579,7 +746,6 @@ try {
           ...second,
           teamName: "After deadline",
           email: `late-${suffix}@example.test`,
-          reference: `LATE-${suffix}`,
         }),
       )
     ).status === 409,
@@ -605,7 +771,7 @@ try {
       publicData.results[0].place === 1,
   );
   check(
-    "public team statistics count verified payments only",
+    "public team statistics count manually confirmed teams only",
     publicData.confirmedTeams === 1,
   );
   check(
@@ -640,7 +806,19 @@ try {
   const csv = await admin("/api/admin/export");
   check(
     "CSV export includes real persisted verification teams",
-    csv.status === 200 && csv.data.includes(team.registrationId),
+    csv.status === 200 &&
+      csv.data.includes(team.registrationId) &&
+      csv.data.includes("Registration status") &&
+      csv.data.includes("Organizer approved registration.") &&
+      csv.data.includes(registration.members[0].email),
+  );
+  check(
+    "CSV denied to guests",
+    (await makeClient()("/api/admin/export")).status === 401,
+  );
+  check(
+    "CSV denied to participants",
+    (await leader("/api/admin/export")).status === 403,
   );
   const doc = await db
     .collection("users")

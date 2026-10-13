@@ -85,7 +85,7 @@ export async function queueConfirmation(
           key,
           to: member.email,
           subject: `You're in! BuildFest 2026 · ${team.registrationId}`,
-          text: `WELCOME TO THE FUTURE, INNOVATOR!\n\nYour team ${team.name} is officially part of BuildFest 2026.\nRegistration ID: ${team.registrationId}\nTeam registration paid: PKR 1,500\n\nYour team leader can access the dashboard at ${process.env.APP_URL || "the official BuildFest website"}/dashboard.\n\nOne Idea. Three Minds. Endless Possibilities.`,
+          text: `WELCOME TO THE FUTURE, INNOVATOR!\n\nYour team ${team.name} has been confirmed by the BuildFest 2026 organizers.\nRegistration ID: ${team.registrationId}\n\nYour team leader can access the dashboard at ${process.env.APP_URL || "the official BuildFest website"}/dashboard.\n\nOne Idea. Three Minds. Endless Possibilities.`,
           status: mailConfigured() ? "queued" : "unconfigured",
           createdAt: new Date(),
         },

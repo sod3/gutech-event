@@ -1,6 +1,6 @@
 # BuildFest 2026
 
-A working Next.js App Router application for GUtech Entrepreneurship Society’s innovation hackathon, powered by ArtDera. White visual design, secure team registration, MongoDB persistence, participant and organizer dashboards, judge workspaces, and organizer-verified manual payments.
+A working Next.js App Router application for GUtech Entrepreneurship Society’s innovation hackathon, powered by ArtDera. White visual design, secure team registration, MongoDB persistence, participant and organizer dashboards, judge workspaces, and fast three-step registration and organizer WhatsApp follow-up.
 
 ## Run locally
 
@@ -28,30 +28,29 @@ Organizer accounts can only be provisioned by this trusted CLI. There is no publ
 The organizer dashboard at `/admin` contains:
 
 - Official event date, registration deadline, project deadline, and five timeline phase dates. Input and display use Pakistan Standard Time (UTC +05:00).
-- Bank transfer, Easypaisa, JazzCash, or other manual transfer instructions. Add the actual receiving account title, number, and instructions; enable the method.
 - Official support email and optional WhatsApp number.
 - An organizer-approved refund policy.
 - Verified prizes and verified public mentor/judge profiles. Unverified items stay off the public site.
 - Official organizer and partner logos, stored as MongoDB binary documents.
 - The explicit **Enable team registration** switch.
 
-Registration stays closed until the required deadline, payment details, support email, and refund policy are configured. Signups close automatically at the registration deadline. Event dates, prize values, logos, and people are never invented.
+Registration opens when the organizer enables it and configures an official registration deadline. Payment settings, support email, and a refund policy are not prerequisites for submission. Signups close automatically at the registration deadline. Event dates, prize values, logos, and people are never invented.
 
-## Payment workflow
+## Registration workflow
 
-1. The leader completes the four-step registration form with any valid email. Teams may have 1–3 members.
-2. The leader follows an enabled official transfer method, supplies the transaction reference, and optionally uploads a PNG/JPEG/PDF receipt (up to 3 MB).
-3. Registration creates the leader’s account, team, unique registration ID, receipt, and audit event in one MongoDB transaction. The fee is always PKR 1,500 for the whole team, and the status is always **Payment Pending**.
-4. An organizer checks the receiving account and approves or rejects the payment. Approval and audit recording are transactional and guard against concurrent double processing.
-5. Verified teams receive a printable confirmation and can submit projects. Rejected teams can correct their transaction details without creating a new registration.
+1. **Team:** team name, leader name, any valid email, WhatsApp number, department, size (1–3 including the leader), and a dashboard password.
+2. **Members:** dynamically collect names and emails for up to two additional members.
+3. **Review & Submit:** edit details, consent to WhatsApp contact, accept event rules, and select **Complete Registration →**.
 
-There is **no integrated payment gateway**, automatic payment-success simulation, or payment-account placeholder in the production event settings. The current workflow is manual verification. If a gateway is added later, use that provider’s server-created payments and signature-verified callbacks; do not change a team’s status based on a client redirect.
+The account, team, registration ID, consent timestamp, and audit event are saved in one MongoDB transaction. Registration status starts as **New Registration**. `/register/success` reads the saved team through its authenticated leader session, including after a refresh. No payment reference, receipt, or payment method is required. The displayed fee remains **PKR 1,500 per team**. Organizers contact leaders on WhatsApp to share next steps and fee instructions.
 
-Unique MongoDB indexes enforce team names, every participant email, registration IDs, and normalized references scoped to the payment method. A participant cannot register into a second team. An uploaded screenshot is never treated as successful payment.
+The admin dashboard lists full registrations, registration dates, members, department, international WhatsApp number, and status. It refreshes saved registrations every ten seconds and on window focus. Search/filter registrations, export CSV, add private internal notes, and manually select **New Registration**, **Contacted**, **Awaiting Confirmation**, or **Confirmed**. The green **Contact on WhatsApp** link opens the requested personalized message; the organizer chooses when to send it. Internal notes are excluded from participant and judge responses.
+
+A persisted request ID and transactional unique indexes prevent repeated clicks and response-loss retries from creating duplicate accounts or teams. Names and all participant emails remain unique. Pakistan mobile formats normalize to `+923xxxxxxxxx`; other countries require an international prefix. Existing records, authentication, payment history, and project data remain intact. Previously confirmed teams retain access. Manual registration confirmation does not mark a team paid. The obsolete payment-review and payment-resubmission endpoints are retired with HTTP 410 and cannot change stored payment records.
 
 ## Participant & judge features
 
-`/dashboard` shows team members, payment status, announcements, deadlines, a persistent progress checklist, private team invitation links, rules, and a builder’s toolkit. Confirmed leaders can save/edit problem statements, solutions, research, prototype URLs, pitch URLs, private PDF pitch decks, and AI declarations. Final submissions remain editable until the official deadline; published results lock further project changes.
+`/dashboard` shows team members, registration status, announcements, deadlines, a persistent progress checklist, private team invitation links, rules, and a builder’s toolkit. Confirmed leaders can save/edit problem statements, solutions, research, prototype URLs, pitch URLs, private PDF pitch decks, and AI declarations. Final submissions remain editable until the official deadline; published results lock further project changes.
 
 `/dashboard/confirmation` is accessible only to a confirmed team leader. Use **Print / save as PDF** to download the confirmation through the browser.
 
@@ -69,7 +68,7 @@ SMTP_PASSWORD
 SMTP_FROM
 ```
 
-Use port `465` for implicit TLS; port `587` uses the provider’s STARTTLS behavior. `SMTP_FROM` must be an address the organizer is authorized to send from. Each team member receives a confirmation after payment verification. Email outbox entries have a unique team/member key and are claimed atomically before dispatch. Missing credentials result in **unconfigured** entries, never a fake “sent” state. Check **Audit & email** to retry failed or queued delivery after configuration.
+Use port `465` for implicit TLS; port `587` uses the provider’s STARTTLS behavior. `SMTP_FROM` must be an address the organizer is authorized to send from. Each team member receives a confirmation after an organizer manually confirms registration. Email outbox entries have a unique team/member key and are claimed atomically before dispatch. Missing credentials result in **unconfigured** entries, never a fake “sent” state. Check **Audit & email** to retry failed or queued delivery after configuration.
 
 SMTP does not provide exactly-once delivery guarantees. A process interruption during a send may leave a `sending` job that requires checking the mail provider before manually requeuing it. This intentionally avoids automatic duplicate sends.
 
@@ -78,7 +77,7 @@ SMTP does not provide exactly-once delivery guarantees. A process interruption d
 - Server-only MongoDB access; no database URI or organizer secrets enter client bundles.
 - Random 256-bit bearer sessions stored only as SHA-256 hashes in MongoDB. HTTP-only, SameSite cookies; Secure cookies in production; seven-day expiry and logout revocation.
 - Role checks at every protected data endpoint, independent of page access.
-- Zod validation on the server, MongoDB unique indexes and strict collection validators, shared database-backed rate limits, same-origin mutation checks, and size/signature checks for uploads. Database validators enforce team sizes, the PKR 1,500 fee, allowed roles/payment states, file types/sizes, and scorecard shape.
+- Zod validation on the server, MongoDB unique indexes and strict collection validators, shared database-backed rate limits, same-origin mutation checks, and size/signature checks for uploads. Database validators enforce team sizes, the PKR 1,500 fee, allowed roles/registration states and legacy payment states, file types/sizes, and scorecard shape.
 - Receipts and decks are MongoDB binary records, not public object-storage URLs. Access is scoped to the team leader, authorized organizer, or assigned judge (decks only). Downloads use attachment and no-store headers. Official logos are the only publicly served uploaded files.
 - CSV output escapes spreadsheet-formula prefixes.
 - Security headers, reduced-motion support, accessible labels, visible focus states, server-rendered content, optimized fonts, SEO metadata, generated Open Graph artwork, robots rules, and sitemap.
@@ -93,10 +92,13 @@ Code-defined visual assets (the icon, generated Open Graph card, and CSS sculptu
 ```powershell
 npm run typecheck
 npm run build
-npm run test:integration
+npm run test:registration
+npm run test:integration:local
 ```
 
-The integration verifier starts the production build on port 3100 and creates a uniquely named `buildfest_verify_*` database. It exercises actual HTTP endpoints and MongoDB transactions: access control, duplicate participants/references, registration, rejection/resubmission, concurrent payment approvals, confirmation emails pending configuration, private file access, submission validation/deadlines, judge assignment and scoring, result publication, CSV export, login rate limits, and logout. It drops only its generated verification database and verifies that production participant counts have not changed.
+`npm run test:integration:local` uses an installed MongoDB server in an isolated local replica set; set `MONGOD_PATH` if it is not discovered automatically. It never connects to production Atlas. `npm run test:integration` uses the connection in `.env.local` and requires access to create a disposable test database.
+
+The integration verifier starts the production build on port 3100 and creates a uniquely named `buildfest_verify_*` database. It exercises actual HTTP endpoints and MongoDB transactions: access control, duplicate participants/team names, concurrent registration retries, WhatsApp validation/consent, all four admin statuses, private notes, legacy record compatibility, concurrent confirmation, confirmation emails pending configuration, private file access, submission validation/deadlines, judge assignment and scoring, result publication, CSV export, login rate limits, and logout. It drops only its generated verification database and verifies that production participant counts have not changed.
 
 Run it only after `npm run build`. Set `VERIFY_PORT` if 3100 is occupied. `node --env-file=.env.local scripts/verify-workflow.mjs --preview` keeps the disposable verification site running for visual QA; Ctrl+C removes its test database. The normal development server continues to use the production event database. No test data is inserted there.
 
@@ -108,7 +110,7 @@ Run it only after `npm run build`. Set `VERIFY_PORT` if 3100 is occupied. `node 
 4. Build/deploy with `npm run build`. Keep the default Node.js runtime; MongoDB is not compatible with an Edge-only deployment.
 5. Run `npm run setup:admin` against that same database using your trusted local environment, sign in to the deployed organizer dashboard, and complete the official event configuration.
 
-The repository is ready for a Vercel deployment. A hosting account/project and canonical public URL are still needed to publish it. Never place secrets in `NEXT_PUBLIC_*` variables. The file limit stays below Vercel’s common request-body ceiling by accepting a maximum of 3 MB per upload.
+The repository is ready for a Vercel deployment. The existing Vercel project is `gutech-event`, with canonical URL `https://gutech-event.vercel.app`. Configure its server environment before deploying. Never place secrets in `NEXT_PUBLIC_*` variables. The file limit stays below Vercel’s common request-body ceiling by accepting a maximum of 3 MB per upload.
 
 ## Project structure
 

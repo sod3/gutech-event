@@ -41,6 +41,13 @@ export async function applyDatabasePolicies(db: Db) {
         leaderId: { bsonType: "objectId" },
         name: { bsonType: "string", minLength: 2, maxLength: 80 },
         nameKey: { bsonType: "string" },
+        registrationStatus: {
+          enum: ["new", "contacted", "awaiting_confirmation", "confirmed"],
+        },
+        internalNotes: { bsonType: "string", maxLength: 4000 },
+        whatsappConsent: { bsonType: "bool" },
+        whatsappConsentAt: { bsonType: "date" },
+        registrationKey: { bsonType: "string" },
         members: {
           bsonType: "array",
           minItems: 1,
@@ -56,13 +63,7 @@ export async function applyDatabasePolicies(db: Db) {
         },
         payment: {
           bsonType: "object",
-          required: [
-            "status",
-            "amount",
-            "reference",
-            "referenceKey",
-            "methodId",
-          ],
+          required: ["status", "amount"],
           properties: {
             status: { enum: ["pending", "confirmed", "rejected"] },
             amount: { enum: [1500] },

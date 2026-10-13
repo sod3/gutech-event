@@ -1,3 +1,4 @@
+import { CONFIRMED_TEAM_FILTER } from "@/lib/registration";
 import { z } from "zod";
 import { collections } from "@/lib/db";
 import {
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
         if (input.publish) {
           const teams = await c.teams
             .find(
-              { "payment.status": "confirmed", "submission.final": true },
+              { ...CONFIRMED_TEAM_FILTER, "submission.final": true },
               { session },
             )
             .toArray();

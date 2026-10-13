@@ -5,12 +5,9 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
   BrainCircuit,
   Check,
-  CheckCircle2,
   Clock3,
-  CreditCard,
   LockKeyhole,
   Save,
   ShieldCheck,
@@ -21,9 +18,10 @@ import {
 import { z } from "zod";
 import {
   emailSchema,
-  passwordSchema,
+  teamDetailsSchema,
   registrationSchema,
 } from "@/lib/validation";
+import { ORGANIZER_FOLLOW_UP } from "@/lib/registration";
 import { registrationState, type Member, type PublicEvent } from "@/lib/types";
 import {
   api,
@@ -41,8 +39,8 @@ type Draft = {
   department: string;
   teamSize: number;
   members: Member[];
-  methodId: string;
-  reference: string;
+  requestId: string;
+  whatsappConsent: boolean;
   password: string;
   agreement: boolean;
 };
@@ -54,26 +52,12 @@ const empty: Draft = {
   department: "",
   teamSize: 1,
   members: [],
-  methodId: "",
-  reference: "",
+  requestId: "",
+  whatsappConsent: false,
   password: "",
   agreement: false,
 };
-const detailSchema = z.object({
-  teamName: z.string().trim().min(2, "Give your team a name.").max(80),
-  leaderName: z.string().trim().min(2, "Enter your full name.").max(100),
-  email: emailSchema,
-  password: passwordSchema,
-  whatsapp: z
-    .string()
-    .trim()
-    .regex(/^\+?[\d\s()-]{10,24}$/, "Enter a valid WhatsApp number."),
-  department: z
-    .string()
-    .trim()
-    .min(2, "Enter your department or program.")
-    .max(100),
-});
+const detailSchema = teamDetailsSchema;
 const memberSchema = z.object({
   members: z
     .array(
@@ -91,39 +75,78 @@ export function Registration({ event }: { event: PublicEvent }) {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [receipt, setReceipt] = useState<File | null>(null);
+  const submitting = useRef(false);
+  const completed = useRef(false);
   const [ready, setReady] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const state = registrationState(event);
-  const method = event.paymentMethods.find((m) => m.id === data.methodId);
   useEffect(() => {
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem("buildfest-registration-draft") || "null",
-      );
-      if (
-        stored &&
-        typeof stored.teamName === "string" &&
-        Array.isArray(stored.members)
-      )
-        setData({
-          ...empty,
-          ...stored,
-          password: "",
-          agreement: false,
-          teamSize: [1, 2, 3].includes(stored.teamSize) ? stored.teamSize : 1,
-          members: stored.members.slice(0, 2),
-        });
-    } catch {}
-    setReady(true);
+    const hydrationTimer = setTimeout(() => {
+      let requestId = crypto.randomUUID();
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("buildfest-registration-draft") || "null",
+        );
+        if (
+          stored &&
+          typeof stored.teamName === "string" &&
+          Array.isArray(stored.members)
+        ) {
+          if (
+            typeof stored.requestId === "string" &&
+            z.string().uuid().safeParse(stored.requestId).success
+          )
+            requestId = stored.requestId;
+          setData({
+            ...empty,
+            ...Object.fromEntries(
+              ["teamName", "leaderName", "email", "whatsapp", "department"].map(
+                (key) => [
+                  key,
+                  typeof stored[key] === "string" ? stored[key] : "",
+                ],
+              ),
+            ),
+            password: "",
+            agreement: false,
+            whatsappConsent: false,
+            requestId,
+            teamSize: [1, 2, 3].includes(stored.teamSize) ? stored.teamSize : 1,
+            members: Array.from(
+              {
+                length:
+                  ([1, 2, 3].includes(stored.teamSize) ? stored.teamSize : 1) -
+                  1,
+              },
+              (_, i) => ({
+                name:
+                  typeof stored.members[i]?.name === "string"
+                    ? stored.members[i].name
+                    : "",
+                email:
+                  typeof stored.members[i]?.email === "string"
+                    ? stored.members[i].email
+                    : "",
+              }),
+            ),
+          });
+        } else setData({ ...empty, requestId });
+      } catch {
+        setData({ ...empty, requestId });
+      }
+      setReady(true);
+    }, 0);
+    return () => clearTimeout(hydrationTimer);
   }, []);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || completed.current) return;
     const timer = setTimeout(() => {
-      const { password, agreement, ...draft } = data;
+      const { password, agreement, whatsappConsent, ...draft } = data;
       void password;
       void agreement;
+      void whatsappConsent;
       try {
+        if (completed.current) return;
         localStorage.setItem(
           "buildfest-registration-draft",
           JSON.stringify(draft),
@@ -173,27 +196,17 @@ export function Registration({ event }: { event: PublicEvent }) {
         return;
       }
     }
-    if (step === 2) {
-      if (!state.open) {
-        setError(state.reason);
-        return;
-      }
-      if (!method || data.reference.trim().length < 3) {
-        setFields({
-          reference: !data.reference
-            ? "Enter your transaction or reference ID."
-            : "",
-        });
-        setError("Select a payment method and add your transaction reference.");
-        return;
-      }
-    }
     setStep(step + 1);
   };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (step < 3) {
+    if (submitting.current) return;
+    if (step < 2) {
       advance();
+      return;
+    }
+    if (!ready || !state.open) {
+      setError(state.reason || "Please wait while your draft loads.");
       return;
     }
     const parsed = registrationSchema.safeParse(data);
@@ -201,24 +214,40 @@ export function Registration({ event }: { event: PublicEvent }) {
       errors(parsed.error.issues);
       return;
     }
+    try {
+      const { password, agreement, whatsappConsent, ...draft } = data;
+      void password;
+      void agreement;
+      void whatsappConsent;
+      localStorage.setItem(
+        "buildfest-registration-draft",
+        JSON.stringify(draft),
+      );
+    } catch {}
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
       const form = new FormData();
       form.append("data", JSON.stringify(parsed.data));
-      if (receipt) form.append("receipt", receipt);
       const result = await api<{ redirect: string }>(
         "/api/register",
         "POST",
         form,
       );
-      localStorage.removeItem("buildfest-registration-draft");
+      completed.current = true;
+      try {
+        localStorage.removeItem("buildfest-registration-draft");
+      } catch {}
       router.push(result.redirect);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
-      setBusy(false);
+      if (!completed.current) {
+        submitting.current = false;
+        setBusy(false);
+      }
     }
   };
   const field = (
@@ -316,7 +345,7 @@ export function Registration({ event }: { event: PublicEvent }) {
         onSubmit={submit}
       >
         <div className="form-stepper">
-          {["Team", "Members", "Payment", "Review"].map((s, i) => (
+          {["Team", "Members", "Review & Submit"].map((s, i) => (
             <div
               className={`form-step ${i === step ? "is-current" : i < step ? "is-complete" : ""}`}
               key={s}
@@ -332,7 +361,6 @@ export function Registration({ event }: { event: PublicEvent }) {
               [
                 "Meet your next big thing.",
                 "Great ideas love good company.",
-                "One fee. Your whole team.",
                 "Ready for what’s next?",
               ][step]
             }
@@ -342,8 +370,7 @@ export function Registration({ event }: { event: PublicEvent }) {
               [
                 "Tell us a little about the team behind the idea.",
                 "You can go solo or build with up to two teammates.",
-                "Transfer PKR 1,500 using the official instructions below.",
-                "Review your details. Your payment will be checked by the organizer.",
+                "Review your details and we’ll take it from here.",
               ][step]
             }
           </p>
@@ -479,118 +506,16 @@ export function Registration({ event }: { event: PublicEvent }) {
           )}
           {step === 2 && (
             <>
-              {!state.open ? (
-                <div className="notice notice-warning">
-                  <Clock3 size={18} />
-                  <div>
-                    <strong>
-                      {event.available
-                        ? "Registration opens soon"
-                        : "Registration is temporarily unavailable"}
-                    </strong>
-                    <p>{state.reason}</p>
-                    <p>
-                      Keep your team details ready. They’re saved on this
-                      device.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="notice">
-                    <ShieldCheck size={18} />
-                    <span>
-                      The amount covers the whole team. A receipt alone does not
-                      confirm payment; your organizer verifies the transaction.
-                    </span>
-                  </div>
-                  <div className="payment-methods">
-                    {event.paymentMethods.map((m) => (
-                      <button
-                        className={`payment-option ${data.methodId === m.id ? "selected" : ""}`}
-                        key={m.id}
-                        type="button"
-                        onClick={() => change("methodId", m.id)}
-                      >
-                        <span>
-                          <CreditCard
-                            size={15}
-                            style={{ display: "inline", marginRight: 9 }}
-                          />
-                          {m.name}
-                        </span>
-                        {data.methodId === m.id && <CheckCircle2 size={16} />}
-                      </button>
-                    ))}
-                  </div>
-                  {method && (
-                    <div className="payment-instructions">
-                      <dl>
-                        <dt>Account title</dt>
-                        <dd>{method.accountTitle}</dd>
-                        <dt>Account / number</dt>
-                        <dd>{method.accountNumber}</dd>
-                        <dt>Team fee</dt>
-                        <dd>PKR 1,500</dd>
-                      </dl>
-                      <p>{method.instructions}</p>
-                    </div>
-                  )}
-                  <div className="form-grid">
-                    {field(
-                      "reference",
-                      "Transaction / reference ID",
-                      "The reference from your payment",
-                      "text",
-                      true,
-                    )}
-                    <div className="field field-full">
-                      <label htmlFor="receipt">
-                        Payment receipt <span>Optional</span>
-                      </label>
-                      <input
-                        className="file-input"
-                        id="receipt"
-                        type="file"
-                        accept="image/png,image/jpeg,application/pdf"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0] || null;
-                          if (f && f.size > 3_000_000) {
-                            setError("Choose a receipt smaller than 3 MB.");
-                            e.target.value = "";
-                            return;
-                          }
-                          setReceipt(f);
-                        }}
-                      />
-                      <small>
-                        PNG, JPG, or PDF · Up to 3 MB. Receipts are private.
-                      </small>
-                      {receipt && <small>Selected: {receipt.name}</small>}
-                    </div>
-                  </div>
-                  <p
-                    className="form-subtitle"
-                    style={{ marginTop: 20, marginBottom: 0 }}
-                  >
-                    Refund policy: {event.refundPolicy}{" "}
-                    {event.supportEmail && (
-                      <a
-                        className="text-link"
-                        href={`mailto:${event.supportEmail}`}
-                      >
-                        Payment support <ArrowUpRight size={12} />
-                      </a>
-                    )}
-                  </p>
-                </>
-              )}
-            </>
-          )}
-          {step === 3 && (
-            <>
               <div className="review-block">
                 <small>YOUR TEAM</small>
+                <button
+                  type="button"
+                  className="text-link review-edit"
+                  disabled={busy}
+                  onClick={() => setStep(0)}
+                >
+                  Edit team details
+                </button>
                 <h3>{data.teamName}</h3>
                 <p>
                   {data.department} · {data.teamSize}{" "}
@@ -599,6 +524,14 @@ export function Registration({ event }: { event: PublicEvent }) {
               </div>
               <div className="review-block">
                 <small>THE PEOPLE BEHIND THE IDEA</small>
+                <button
+                  type="button"
+                  className="text-link review-edit"
+                  disabled={busy}
+                  onClick={() => setStep(1)}
+                >
+                  Edit members
+                </button>
                 <p>
                   {data.leaderName} — {data.email} (Leader)
                 </p>
@@ -609,13 +542,8 @@ export function Registration({ event }: { event: PublicEvent }) {
                 ))}
               </div>
               <div className="review-block">
-                <small>PAYMENT DETAILS</small>
-                <p>
-                  {method?.name} · Ref: {data.reference}
-                </p>
-                <p>
-                  {receipt ? `Receipt: ${receipt.name}` : "No receipt attached"}
-                </p>
+                <small>WHATSAPP CONTACT</small>
+                <p>{data.whatsapp}</p>
               </div>
               <div className="review-total">
                 <span>
@@ -625,12 +553,30 @@ export function Registration({ event }: { event: PublicEvent }) {
               </div>
               <div className="notice">
                 <ShieldCheck size={18} />
-                <span>
-                  We’ll create a registration ID and set your status to{" "}
-                  <strong>Payment Pending</strong>. You’re officially confirmed
-                  once an organizer verifies your payment.
-                </span>
+                <span>{ORGANIZER_FOLLOW_UP}</span>
               </div>
+              {!state.open && (
+                <div className="notice notice-warning">
+                  <Clock3 size={18} />
+                  <span>{state.reason}</span>
+                </div>
+              )}
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={data.whatsappConsent}
+                  onChange={(e) => change("whatsappConsent", e.target.checked)}
+                  aria-invalid={!!fields.whatsappConsent}
+                />
+                <span>
+                  I consent to being contacted by the BuildFest 2026 organizers
+                  through WhatsApp about registration, payment instructions, and
+                  event details.
+                </span>
+              </label>
+              {fields.whatsappConsent && (
+                <small className="field-error">{fields.whatsappConsent}</small>
+              )}
               <label className="check-label">
                 <input
                   type="checkbox"
@@ -644,7 +590,7 @@ export function Registration({ event }: { event: PublicEvent }) {
                   </Link>{" "}
                   and{" "}
                   <Link href="/privacy" target="_blank">
-                    privacy & refund information
+                    privacy policy
                   </Link>
                   , and I have my teammates’ consent to register.
                 </span>
@@ -676,9 +622,9 @@ export function Registration({ event }: { event: PublicEvent }) {
             <LoadingButton
               busy={busy}
               type="submit"
-              disabled={step === 2 && !state.open}
+              disabled={!ready || (step === 2 && !state.open)}
             >
-              {step === 3 ? "Submit for verification" : "Continue"}
+              {step === 2 ? "Complete Registration" : "Continue"}
               <ArrowRight size={15} />
             </LoadingButton>
           </div>
@@ -693,11 +639,13 @@ export function Registration({ event }: { event: PublicEvent }) {
           </span>
           <button
             type="button"
+            disabled={busy}
             onClick={() => {
-              localStorage.removeItem("buildfest-registration-draft");
-              setData(empty);
+              try {
+                localStorage.removeItem("buildfest-registration-draft");
+              } catch {}
+              setData({ ...empty, requestId: crypto.randomUUID() });
               setStep(0);
-              setReceipt(null);
               setError("");
             }}
             style={{ fontSize: 12, color: "var(--foreground)" }}

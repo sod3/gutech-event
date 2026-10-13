@@ -1,3 +1,4 @@
+import { registrationStatus } from "@/lib/registration";
 import { z } from "zod";
 import { collections } from "@/lib/db";
 import { getSettings, safeTeam } from "@/lib/event";
@@ -48,10 +49,10 @@ export async function PATCH(request: Request) {
     if (!team) throw new HttpError(404, "Team not found.");
     if (input.submission) {
       const submission = input.submission;
-      if (team.payment.status !== "confirmed")
+      if (registrationStatus(team) !== "confirmed")
         throw new HttpError(
           403,
-          "Your payment must be verified before you can submit a project.",
+          "Your registration must be confirmed by an organizer before you can submit a project.",
         );
       if (!settings.submissionDeadline)
         throw new HttpError(
@@ -66,8 +67,13 @@ export async function PATCH(request: Request) {
       const session = c.client.startSession();
       try {
         await session.withTransaction(async () => {
-        await lockOpenEvent(session,true);
+          await lockOpenEvent(session, true);
           const latest = await c.teams.findOne({ _id: team._id }, { session });
+          if (!latest || registrationStatus(latest) !== "confirmed")
+            throw new HttpError(
+              403,
+              "Your registration must be confirmed by an organizer before you can submit a project.",
+            );
           await c.teams.updateOne(
             { _id: team._id },
             {

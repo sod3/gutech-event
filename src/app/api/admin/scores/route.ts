@@ -1,3 +1,4 @@
+import { CONFIRMED_TEAM_FILTER } from "@/lib/registration";
 import { z } from "zod";
 import { collections } from "@/lib/db";
 import { lockOpenEvent } from "@/lib/judging";
@@ -46,7 +47,7 @@ export async function PUT(request: Request) {
             {
               _id: teamId,
               "submission.final": true,
-              "payment.status": "confirmed",
+              ...CONFIRMED_TEAM_FILTER,
             },
             { session },
           ))

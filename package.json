@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "setup:admin": "node scripts/setup-admin.mjs",
+    "test:registration": "tsx scripts/verify-registration.ts",
+    "test:integration:local": "node scripts/verify-local.mjs",
     "test:integration": "node --env-file=.env.local scripts/verify-workflow.mjs"
   },
   "dependencies": {

@@ -4,9 +4,7 @@ import {
   ArrowUpRight,
   Bell,
   Check,
-  CheckCircle2,
   Clock3,
-  CreditCard,
   Download,
   FileText,
   LayoutDashboard,
@@ -20,7 +18,7 @@ import {
   Trophy,
   UserCheck,
   Users,
-  Wallet,
+  MessageCircle,
   X,
 } from "lucide-react";
 import {
@@ -31,6 +29,12 @@ import {
   Status,
   formatDate,
 } from "./ui";
+import {
+  REGISTRATION_LABELS,
+  REGISTRATION_STATUSES,
+  whatsappContactUrl,
+  type RegistrationStatus,
+} from "@/lib/registration";
 import { Workspace } from "./workspace";
 import {
   CRITERIA,
@@ -39,8 +43,9 @@ import {
   type SafeTeam,
 } from "@/lib/types";
 
+type AdminTeam = SafeTeam & { internalNotes: string; whatsappConsent: boolean };
 type AdminData = {
-  teams: SafeTeam[];
+  teams: AdminTeam[];
   settings: EventSettings;
   judges: { id: string; name: string; email: string }[];
   scores: {
@@ -79,9 +84,14 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState<SafeTeam | null>(null);
+  const [selected, setSelected] = useState<AdminTeam | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const [verified, setVerified] = useState<Record<string, boolean>>({});
+  const [statuses, setStatuses] = useState<Record<string, RegistrationStatus>>(
+    {},
+  );
+  const [reviewBaselines, setReviewBaselines] = useState<
+    Record<string, { status: RegistrationStatus; notes: string }>
+  >({});
   const [announcements, setAnnouncements] = useState(event.announcements);
   const [announcement, setAnnouncement] = useState({ title: "", message: "" });
   const [judge, setJudge] = useState({ name: "", email: "", password: "" });
@@ -108,16 +118,36 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
     }
   };
   useEffect(() => {
-    api<AdminData>("/api/admin")
-      .then((r) => {
-        setData(r);
-        setSettings(r.settings);
-      })
-      .catch((e) =>
-        setError(
-          e instanceof Error ? e.message : "Unable to load organizer data.",
-        ),
-      );
+    let cancelled = false;
+    const refresh = async (initial = false) => {
+      try {
+        const result = await api<AdminData>("/api/admin");
+        if (cancelled) return;
+        setData(result);
+        if (initial) setSettings(result.settings);
+        setSelected((prev) =>
+          prev ? result.teams.find((t) => t.id === prev.id) || null : null,
+        );
+      } catch (e) {
+        if (!cancelled)
+          setError(
+            e instanceof Error ? e.message : "Unable to load organizer data.",
+          );
+      }
+    };
+    void refresh(true);
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 10000);
+    const focus = () => {
+      void refresh();
+    };
+    window.addEventListener("focus", focus);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      window.removeEventListener("focus", focus);
+    };
   }, []);
   const action = async (
     url: string,
@@ -141,13 +171,13 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
     }
   };
   const teams = data?.teams || [];
-  const pending = teams.filter((t) => t.payment.status === "pending");
-  const confirmed = teams.filter((t) => t.payment.status === "confirmed");
+  const pending = teams.filter((t) => t.registrationStatus === "new");
+  const confirmed = teams.filter((t) => t.registrationStatus === "confirmed");
   const final = confirmed.filter((t) => t.submission.final);
   const visible = teams.filter(
     (t) =>
-      (filter === "all" || t.payment.status === filter) &&
-      `${t.name} ${t.registrationId} ${t.members.map((m) => `${m.name} ${m.email}`).join(" ")} ${t.payment.reference}`
+      (filter === "all" || t.registrationStatus === filter) &&
+      `${t.name} ${t.registrationId} ${t.members.map((m) => `${m.name} ${m.email}`).join(" ")} ${t.whatsapp} ${t.department} ${t.internalNotes}`
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -155,117 +185,172 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
     key: keyof EventSettings,
     value: EventSettings[keyof EventSettings],
   ) => setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
-  const paymentReview = (team: SafeTeam) => (
+  const contactButton = (team: AdminTeam) => {
+    const href = whatsappContactUrl(team);
+    return href ? (
+      <a
+        className="button button-whatsapp button-small"
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Contact on WhatsApp: ${team.name}`}
+      >
+        <MessageCircle size={15} />
+        Contact on WhatsApp
+      </a>
+    ) : (
+      <span className="field-error">
+        Invalid WhatsApp number — contact the leader by email.
+      </span>
+    );
+  };
+  const registrationReview = (team: AdminTeam) => (
     <div className="workspace-card payment-review-card" key={team.id}>
       <div className="payment-review-heading">
         <div>
           <h3>{team.name}</h3>
-          <small>
-            {team.registrationId} · {team.members[0].email}
-          </small>
+          <small>{team.registrationId}</small>
         </div>
-        <Status status={team.payment.status} />
+        <Status status={team.registrationStatus} />
       </div>
       <dl className="payment-detail-list">
         <div>
-          <dt>AMOUNT</dt>
-          <dd>PKR {team.payment.amount.toLocaleString()}</dd>
+          <dt>REGISTERED ON</dt>
+          <dd>{formatDate(team.createdAt)}</dd>
         </div>
         <div>
-          <dt>PAYMENT METHOD</dt>
-          <dd>
-            {settings?.paymentMethods.find(
-              (m) => m.id === team.payment.methodId,
-            )?.name || team.payment.methodId}
-          </dd>
+          <dt>WHATSAPP</dt>
+          <dd>{team.whatsapp}</dd>
         </div>
         <div>
-          <dt>REFERENCE</dt>
-          <dd>{team.payment.reference}</dd>
+          <dt>DEPARTMENT</dt>
+          <dd>{team.department}</dd>
         </div>
         <div>
-          <dt>SUBMITTED</dt>
-          <dd>{formatDate(team.payment.submittedAt)}</dd>
+          <dt>TOTAL MEMBERS</dt>
+          <dd>{team.members.length}</dd>
         </div>
       </dl>
-      {team.payment.receiptId ? (
-        <a
-          className="text-link"
-          style={{ fontSize: 12 }}
-          href={`/api/files/${team.payment.receiptId}`}
-          target="_blank"
-          rel="noopener noreferrer"
+      {contactButton(team)}
+      <p className="payment-help">
+        WhatsApp contact consent:{" "}
+        {team.whatsappConsent
+          ? "Provided during registration"
+          : "Not recorded for this existing registration"}
+        .
+      </p>
+      <div className="field registration-review-field">
+        <label htmlFor={`status-${team.id}`}>Registration status</label>
+        <select
+          id={`status-${team.id}`}
+          value={statuses[team.id] ?? team.registrationStatus}
+          disabled={busy}
+          onChange={(e) => {
+            setReviewBaselines((prev) => ({
+              ...prev,
+              [team.id]: prev[team.id] ?? {
+                status: team.registrationStatus,
+                notes: team.internalNotes,
+              },
+            }));
+            setStatuses((prev) => ({
+              ...prev,
+              [team.id]: e.target.value as RegistrationStatus,
+            }));
+          }}
         >
-          Download private receipt <Download size={13} />
-        </a>
-      ) : (
-        <p style={{ fontSize: 12, color: "var(--foreground)" }}>
-          No receipt attached. Verify the transaction in the receiving account.
-        </p>
-      )}
-      {team.payment.status === "pending" && (
-        <>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={!!verified[team.id]}
-              onChange={(e) =>
-                setVerified((prev) => ({
-                  ...prev,
-                  [team.id]: e.target.checked,
-                }))
-              }
-            />
-            <span>
-              I have verified this PKR 1,500 transaction in the official
-              receiving account.
-            </span>
-          </label>
-          <div className="payment-review-actions">
-            <input
-              aria-label={`Review note for ${team.name}`}
-              placeholder="Review note (required when rejecting)"
-              value={notes[team.id] || ""}
-              maxLength={1000}
-              onChange={(e) =>
-                setNotes((prev) => ({ ...prev, [team.id]: e.target.value }))
-              }
-            />
-            <LoadingButton
-              busy={busy}
-              disabled={!verified[team.id]}
-              className="button button-primary"
-              onClick={() =>
-                action("/api/admin/payments", {
-                  teamId: team.id,
-                  status: "confirmed",
-                  note:
-                    notes[team.id] ||
-                    "Payment verified in the official receiving account.",
-                })
-              }
-            >
-              <Check size={13} />
-              Verify
-            </LoadingButton>
-            <LoadingButton
-              busy={busy}
-              className="button button-danger"
-              onClick={() =>
-                action("/api/admin/payments", {
-                  teamId: team.id,
-                  status: "rejected",
-                  note: notes[team.id] || "",
-                })
-              }
-            >
-              Reject
-            </LoadingButton>
-          </div>
-        </>
-      )}
-      {team.payment.note && (
-        <p className="payment-help">Review note: {team.payment.note}</p>
+          {REGISTRATION_STATUSES.map((status) => (
+            <option value={status} key={status}>
+              {REGISTRATION_LABELS[status]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="field registration-review-field">
+        <label htmlFor={`notes-${team.id}`}>
+          Internal notes · organizers only
+        </label>
+        <textarea
+          id={`notes-${team.id}`}
+          value={notes[team.id] ?? team.internalNotes}
+          maxLength={4000}
+          disabled={busy}
+          placeholder="Contact history, next steps, or follow-up notes…"
+          onChange={(e) => {
+            setReviewBaselines((prev) => ({
+              ...prev,
+              [team.id]: prev[team.id] ?? {
+                status: team.registrationStatus,
+                notes: team.internalNotes,
+              },
+            }));
+            setNotes((prev) => ({ ...prev, [team.id]: e.target.value }));
+          }}
+        />
+      </div>
+      <LoadingButton
+        busy={busy}
+        onClick={async () => {
+          if (
+            await action(
+              "/api/admin/registrations",
+              {
+                teamId: team.id,
+                status: statuses[team.id] ?? team.registrationStatus,
+                expectedStatus:
+                  reviewBaselines[team.id]?.status ?? team.registrationStatus,
+                expectedNotes:
+                  reviewBaselines[team.id]?.notes ?? team.internalNotes,
+                internalNotes: notes[team.id] ?? team.internalNotes,
+              },
+              "PATCH",
+            )
+          ) {
+            setReviewBaselines((prev) => {
+              const next = { ...prev };
+              delete next[team.id];
+              return next;
+            });
+            setNotes((prev) => {
+              const next = { ...prev };
+              delete next[team.id];
+              return next;
+            });
+            setStatuses((prev) => {
+              const next = { ...prev };
+              delete next[team.id];
+              return next;
+            });
+          }
+        }}
+      >
+        Save registration <Check size={14} />
+      </LoadingButton>
+      {reviewBaselines[team.id] && (
+        <button
+          type="button"
+          className="button button-quiet"
+          disabled={busy}
+          onClick={() => {
+            setNotes((prev) => {
+              const next = { ...prev };
+              delete next[team.id];
+              return next;
+            });
+            setStatuses((prev) => {
+              const next = { ...prev };
+              delete next[team.id];
+              return next;
+            });
+            setReviewBaselines((prev) => {
+              const next = { ...prev };
+              delete next[team.id];
+              return next;
+            });
+          }}
+        >
+          Discard changes
+        </button>
       )}
     </div>
   );
@@ -274,7 +359,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
       <div className="table-toolbar">
         <input
           aria-label="Search teams"
-          placeholder="Search teams, emails, IDs, references…"
+          placeholder="Search teams, emails, IDs, WhatsApp, departments…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -284,9 +369,11 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           onChange={(e) => setFilter(e.target.value)}
         >
           <option value="all">All registrations</option>
-          <option value="pending">Payment pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="rejected">Rejected</option>
+          {REGISTRATION_STATUSES.map((status) => (
+            <option value={status} key={status}>
+              {REGISTRATION_LABELS[status]}
+            </option>
+          ))}
         </select>
       </div>
       {teams.length ? (
@@ -297,8 +384,11 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 <tr>
                   <th>TEAM</th>
                   <th>TEAM LEADER</th>
+                  <th>WHATSAPP</th>
+                  <th>DEPARTMENT</th>
                   <th>SIZE</th>
-                  <th>PAYMENT</th>
+                  <th>REGISTERED</th>
+                  <th>STATUS</th>
                   <th>PROJECT</th>
                   <th />
                 </tr>
@@ -314,15 +404,22 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                       {t.members[0].name}
                       <small>{t.members[0].email}</small>
                     </td>
+                    <td>{t.whatsapp}</td>
+                    <td>{t.department}</td>
                     <td>{t.members.length}</td>
+                    <td>{formatDate(t.createdAt)}</td>
                     <td>
-                      <Status status={t.payment.status} />
+                      <Status status={t.registrationStatus} />
                     </td>
                     <td>
                       <Status status={t.submission.final ? "final" : "draft"} />
                     </td>
                     <td>
-                      <button onClick={() => setSelected(t)}>
+                      {contactButton(t)}
+                      <button
+                        className="registration-view-button"
+                        onClick={() => setSelected(t)}
+                      >
                         View <ArrowUpRight size={12} />
                       </button>
                     </td>
@@ -333,8 +430,8 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           </div>
           <p className="table-footer">
             Showing {visible.length} of {teams.length} registrations. Each
-            participant, team name, and payment reference can belong to only one
-            registration.
+            participant and team name can belong to only one registration. Saved
+            registrations refresh automatically.
           </p>
         </>
       ) : (
@@ -391,12 +488,6 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
       tabs={[
         { id: "overview", title: "Event overview", icon: LayoutDashboard },
         { id: "registrations", title: "Registrations", icon: Users },
-        {
-          id: "payments",
-          title: "Payment reviews",
-          icon: CreditCard,
-          count: pending.length,
-        },
         { id: "projects", title: "Projects & judging", icon: FileText },
         { id: "settings", title: "Event configuration", icon: Settings2 },
         { id: "announcements", title: "Announcements", icon: Bell },
@@ -410,7 +501,6 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               {
                 overview: "A big idea. Under control.",
                 registrations: "Meet your innovators.",
-                payments: "Every payment, verified.",
                 projects: "The ideas taking shape.",
                 settings: "Make it official.",
                 announcements: "Keep everyone in the loop.",
@@ -467,28 +557,31 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 <UserCheck size={17} />
               </div>
               <strong>{confirmed.length}</strong>
-              <small>Payment verified by organizers</small>
+              <small>Manually confirmed by organizers</small>
             </div>
             <div className="stat-card">
               <div>
-                <span>AWAITING REVIEW</span>
+                <span>AWAITING CONTACT</span>
                 <Clock3 size={17} />
               </div>
               <strong>{pending.length}</strong>
-              <small>Manual payment verification</small>
+              <small>New team registrations</small>
             </div>
             <div className="stat-card">
               <div>
-                <span>VERIFIED REVENUE</span>
-                <Wallet size={17} />
+                <span>CONTACTED TEAMS</span>
+                <MessageCircle size={17} />
               </div>
               <strong>
-                <span style={{ fontSize: 12, letterSpacing: 0 }}>PKR </span>
-                {confirmed
-                  .reduce((s, t) => s + t.payment.amount, 0)
-                  .toLocaleString()}
+                {
+                  teams.filter(
+                    (t) =>
+                      t.registrationStatus === "contacted" ||
+                      t.registrationStatus === "awaiting_confirmation",
+                  ).length
+                }
               </strong>
-              <small>Only verified team payments</small>
+              <small>Organizer follow-up in progress</small>
             </div>
           </div>
           <div className="welcome-card" style={{ marginBottom: 24 }}>
@@ -501,8 +594,8 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               </h2>
               <p>
                 {settings?.registrationOpen
-                  ? "Registration closes automatically at the official deadline. Keep payment reviews and announcements up to date."
-                  : "Set official dates, payment instructions, support details, and a refund policy. Then enable registration in Event configuration."}
+                  ? "Registration closes automatically at the official deadline. Contact new teams on WhatsApp and keep registration statuses up to date."
+                  : "Set official dates and organizer support details. Then enable registration in Event configuration."}
               </p>
               <button
                 className="text-link"
@@ -518,30 +611,6 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
         </>
       )}
       {data && tab === "registrations" && table}
-      {data && tab === "payments" && (
-        <>
-          <div className="notice">
-            <ShieldCheck size={17} />
-            <span>
-              Check the payment reference against your bank, Easypaisa, or
-              JazzCash account before verifying. A receipt alone is not proof of
-              funds received.
-            </span>
-          </div>
-          {pending.length ? (
-            pending.map(paymentReview)
-          ) : (
-            <div className="workspace-card" style={{ marginTop: 20 }}>
-              <EmptyState
-                icon={<CheckCircle2 size={21} />}
-                title="All caught up."
-              >
-                There are no pending payments to review.
-              </EmptyState>
-            </div>
-          )}
-        </>
-      )}
       {selected && (
         <div className="workspace-card" style={{ marginTop: 22 }}>
           <div className="card-header">
@@ -567,7 +636,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           <p className="payment-help">
             {selected.department} · WhatsApp {selected.whatsapp}
           </p>
-          {paymentReview(selected)}
+          {registrationReview(selected)}
           <div className="project-preview">
             <h3>{selected.submission.title || "Project not submitted yet"}</h3>
             {selected.submission.problem && (
@@ -663,8 +732,8 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
             <div className="workspace-card">
               <h2>Official support & policy</h2>
               <p>
-                Support and refund information must be available before
-                registration opens.
+                These details help students reach the organizing team. Payment
+                instructions are shared directly on WhatsApp.
               </p>
               {configField("supportEmail", "Official support email", "email")}
               {configField("supportWhatsApp", "Official WhatsApp number")}
@@ -728,105 +797,6 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                   />
                 </div>
               ))}
-            </div>
-            <div className="workspace-card span-two">
-              <h2>Official payment methods</h2>
-              <p>
-                Manual transfer workflow · PKR 1,500 per team. Only enabled
-                methods appear publicly. No payment gateway is connected.
-              </p>
-              {settings.paymentMethods.map((m, i) => (
-                <div className="settings-method" key={m.id}>
-                  <div>
-                    <span>METHOD 0{i + 1}</span>
-                    <button
-                      className="icon-button"
-                      aria-label={`Remove ${m.name || "payment method"}`}
-                      onClick={() =>
-                        set(
-                          "paymentMethods",
-                          settings.paymentMethods.filter((_, j) => i !== j),
-                        )
-                      }
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                  <div className="form-grid" style={{ marginTop: 16 }}>
-                    {(
-                      [
-                        "name",
-                        "accountTitle",
-                        "accountNumber",
-                        "instructions",
-                      ] as const
-                    ).map((key) => (
-                      <div
-                        className={`field ${key === "instructions" ? "field-full" : ""}`}
-                        key={key}
-                      >
-                        <label htmlFor={`method-${i}-${key}`}>
-                          {
-                            {
-                              name: "Method name (e.g. Bank transfer)",
-                              accountTitle: "Official account title",
-                              accountNumber: "Account / IBAN / mobile number",
-                              instructions: "Transfer instructions",
-                            }[key]
-                          }
-                        </label>
-                        <input
-                          id={`method-${i}-${key}`}
-                          value={m[key]}
-                          maxLength={key === "instructions" ? 2000 : 120}
-                          onChange={(e) =>
-                            set(
-                              "paymentMethods",
-                              settings.paymentMethods.map((p, j) =>
-                                j === i ? { ...p, [key]: e.target.value } : p,
-                              ),
-                            )
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <label className="check-label">
-                    <input
-                      type="checkbox"
-                      checked={m.enabled}
-                      onChange={(e) =>
-                        set(
-                          "paymentMethods",
-                          settings.paymentMethods.map((p, j) =>
-                            j === i ? { ...p, enabled: e.target.checked } : p,
-                          ),
-                        )
-                      }
-                    />
-                    Enable this official payment method
-                  </label>
-                </div>
-              ))}
-              <button
-                className="setting-add"
-                onClick={() =>
-                  set("paymentMethods", [
-                    ...settings.paymentMethods,
-                    {
-                      id: crypto.randomUUID(),
-                      name: "",
-                      accountTitle: "",
-                      accountNumber: "",
-                      instructions: "",
-                      enabled: false,
-                    },
-                  ])
-                }
-              >
-                <Plus size={13} />
-                Add payment method
-              </button>
             </div>
             <div className="workspace-card">
               <h2>Verified prizes & awards</h2>
@@ -1204,6 +1174,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                         : "DRAFT / NOT SUBMITTED"}{" "}
                       · {t.registrationId}
                     </p>
+                    {contactButton(t)}
                     <button
                       className="text-link"
                       style={{ fontSize: 12, marginTop: 8 }}
@@ -1497,7 +1468,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               <Mail size={17} />
               <span>
                 {data.mail.configured
-                  ? "Official SMTP is configured. Confirmation emails are queued only after payment verification."
+                  ? "Official SMTP is configured. Confirmation emails are queued only after organizer confirmation."
                   : "Email delivery is awaiting official SMTP credentials. Confirmations are queued and clearly marked unconfigured; no emails are claimed as sent."}
               </span>
             </div>
@@ -1570,7 +1541,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 icon={<ShieldCheck size={19} />}
                 title="A clean start."
               >
-                Payment reviews and organizer changes are recorded here.
+                Registration updates and organizer changes are recorded here.
               </EmptyState>
             )}
           </div>

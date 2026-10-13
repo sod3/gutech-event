@@ -1,5 +1,6 @@
 import { collections } from "@/lib/db";
 import { apiError, authorize } from "@/lib/security";
+import { registrationStatus, REGISTRATION_LABELS } from "@/lib/registration";
 function cell(value: unknown) {
   const s = String(value ?? "");
   return `"${(/^[=+\-@\t\r]/.test(s) ? "'" : "") + s.replace(/"/g, '""')}"`;
@@ -23,9 +24,10 @@ export async function GET() {
         "Department",
         "Size",
         "Members",
-        "Payment status",
+        "Registration status",
         "Amount PKR",
-        "Reference",
+        "Internal notes",
+        "WhatsApp contact consent",
         "Project",
         "Final submission",
         "Created",
@@ -39,9 +41,10 @@ export async function GET() {
         t.department,
         t.members.length,
         t.members.map((m) => `${m.name} <${m.email}>`).join("; "),
-        t.payment.status,
+        REGISTRATION_LABELS[registrationStatus(t)],
         t.payment.amount,
-        t.payment.reference,
+        t.internalNotes || "",
+        t.whatsappConsent ? "Yes" : "Not recorded (legacy registration)",
         t.submission.title,
         t.submission.final,
         t.createdAt.toISOString(),

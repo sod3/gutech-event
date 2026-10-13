@@ -68,7 +68,15 @@ export async function collections() {
       c.teams.createIndex({ registrationId: 1 }, { unique: true }),
       c.teams.createIndex({ "members.email": 1 }, { unique: true }),
       c.teams.createIndex({ nameKey: 1 }, { unique: true }),
-      c.teams.createIndex({ "payment.referenceKey": 1 }, { unique: true }),
+      ensureLegacyPaymentIndex(c.teams),
+      c.teams.createIndex(
+        { registrationKey: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { registrationKey: { $type: "string" } },
+        },
+      ),
+      c.teams.createIndex({ registrationStatus: 1, createdAt: -1 }),
       c.teams.createIndex({ inviteToken: 1 }, { unique: true }),
       c.sessions.createIndex({ tokenHash: 1 }, { unique: true }),
       c.sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
@@ -86,4 +94,33 @@ export async function collections() {
       });
   await globalDb.indexesPromise;
   return c;
+}
+
+// Keep existing payment references unique; payment-free teams omit this field.
+async function ensureLegacyPaymentIndex(
+  teams: import("mongodb").Collection<TeamDoc>,
+) {
+  await teams.createIndex(
+    { "payment.referenceKey": 1 },
+    {
+      name: "legacy_payment_reference_unique",
+      unique: true,
+      partialFilterExpression: { "payment.referenceKey": { $type: "string" } },
+    },
+  );
+  try {
+    const indexes = await teams.listIndexes().toArray();
+    const old = indexes.find(
+      (index) => index.name === "payment.referenceKey_1",
+    );
+    if (old && !old.partialFilterExpression) {
+      try {
+        await teams.dropIndex(old.name!);
+      } catch (error) {
+        if (![26, 27].includes((error as { code: number }).code)) throw error;
+      }
+    }
+  } catch (error) {
+    if ((error as { code: number }).code !== 26) throw error;
+  }
 }

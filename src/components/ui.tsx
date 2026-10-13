@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
 import {
+  REGISTRATION_LABELS,
+  type RegistrationStatus,
+} from "@/lib/registration";
+import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
@@ -154,14 +158,15 @@ export function SectionLabel({
 export function Status({
   status,
 }: {
-  status: "pending" | "confirmed" | "rejected" | "draft" | "final";
+  status: RegistrationStatus | "pending" | "rejected" | "draft" | "final";
 }) {
   return (
     <span className={`status status-${status}`}>
       <span />
       {
         {
-          pending: "Payment pending",
+          ...REGISTRATION_LABELS,
+          pending: "Awaiting Organizer Contact",
           confirmed: "Confirmed",
           rejected: "Action needed",
           draft: "Draft",

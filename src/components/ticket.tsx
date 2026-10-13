@@ -22,7 +22,7 @@ export function Ticket({
             size={12}
             style={{ display: "inline", marginRight: 6 }}
           />
-          PAYMENT VERIFIED · REGISTRATION CONFIRMED
+          ORGANIZER APPROVED · REGISTRATION CONFIRMED
         </div>
         <h1>
           Welcome to the future,
@@ -50,7 +50,7 @@ export function Ticket({
             LOCATION<strong>GUtech University, Pakistan</strong>
           </span>
           <span>
-            TEAM REGISTRATION<strong>PKR 1,500 · verified</strong>
+            REGISTRATION STATUS<strong>Confirmed by organizers</strong>
           </span>
         </div>
         <p>Event date: {formatDate(event.eventDate)}</p>

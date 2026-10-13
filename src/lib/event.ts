@@ -1,5 +1,6 @@
 import "server-only";
 import { collections } from "./db";
+import { CONFIRMED_TEAM_FILTER, registrationStatus } from "./registration";
 import {
   DEFAULT_SETTINGS,
   type EventSettings,
@@ -34,7 +35,7 @@ export async function publicEvent(): Promise<PublicEvent> {
     const c = await collections();
     const settings = await getSettings();
     const [confirmedTeams, announcements, results] = await Promise.all([
-      c.teams.countDocuments({ "payment.status": "confirmed" }),
+      c.teams.countDocuments(CONFIRMED_TEAM_FILTER),
       c.announcements.find().sort({ createdAt: -1 }).limit(20).toArray(),
       settings.resultsPublished
         ? c.results
@@ -45,7 +46,7 @@ export async function publicEvent(): Promise<PublicEvent> {
     ]);
     return {
       ...settings,
-      paymentMethods: settings.paymentMethods.filter((m) => m.enabled),
+      paymentMethods: [],
       people: settings.people.filter((p) => p.verified),
       prizes: settings.prizes.filter((p) => p.verified),
       confirmedTeams,
@@ -76,6 +77,7 @@ export function safeTeam(team: TeamDoc, includeInvite = false): SafeTeam {
     members: team.members,
     whatsapp: team.whatsapp,
     department: team.department,
+    registrationStatus: registrationStatus(team),
     payment: {
       status: team.payment.status,
       methodId: team.payment.methodId,

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Clock3,
   Copy,
-  CreditCard,
   Download,
   ExternalLink,
   FileText,
@@ -21,9 +20,9 @@ import {
   MessageCircle,
   Rocket,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
+import { ORGANIZER_FOLLOW_UP } from "@/lib/registration";
 import { type PublicEvent, type SafeTeam, type Submission } from "@/lib/types";
 import {
   api,
@@ -52,17 +51,23 @@ export function Participant({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [invite, setInvite] = useState("");
-  const [paymentRef, setPaymentRef] = useState("");
-  const [methodId, setMethodId] = useState(event.paymentMethods[0]?.id || "");
-  const [receipt, setReceipt] = useState<File | null>(null);
-  const confirmed = team.payment.status === "confirmed";
+  const [now, setNow] = useState<number | null>(null);
+  const confirmed = team.registrationStatus === "confirmed";
   const submissionOpen =
     confirmed &&
     !event.resultsPublished &&
     !!event.submissionDeadline &&
-    new Date(event.submissionDeadline).getTime() > Date.now();
+    new Date(event.submissionDeadline).getTime() > (now ?? Infinity);
   useEffect(() => {
-    setInvite(`${window.location.origin}/invite/${initialTeam.inviteToken}`);
+    const hydrationTimer = setTimeout(() => {
+      setInvite(`${window.location.origin}/invite/${initialTeam.inviteToken}`);
+      setNow(Date.now());
+    }, 0);
+    const clockTimer = setInterval(() => setNow(Date.now()), 30000);
+    return () => {
+      clearTimeout(hydrationTimer);
+      clearInterval(clockTimer);
+    };
   }, [initialTeam.inviteToken]);
   const changeTab = (s: string) => {
     setTab(s);
@@ -121,28 +126,6 @@ export function Participant({
       setMessage(result.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const resubmitPayment = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const form = new FormData();
-      form.append("data", JSON.stringify({ methodId, reference: paymentRef }));
-      if (receipt) form.append("receipt", receipt);
-      const r = await api<{ message: string }>(
-        "/api/team/payment",
-        "POST",
-        form,
-      );
-      const refreshed = await api<{ team: SafeTeam }>("/api/team");
-      setTeam(refreshed.team);
-      setMessage(r.message);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
       setBusy(false);
     }
@@ -211,7 +194,7 @@ export function Participant({
             {team.registrationId}
           </p>
         </div>
-        <Status status={team.payment.status} />
+        <Status status={team.registrationStatus} />
       </div>
       {tab === "overview" && (
         <>
@@ -220,7 +203,7 @@ export function Participant({
               <small>
                 {confirmed
                   ? "WELCOME TO THE FUTURE, INNOVATOR!"
-                  : "YOUR REGISTRATION IS IN REVIEW"}
+                  : "YOUR TEAM DETAILS ARE SAVED"}
               </small>
               <h2>
                 {confirmed
@@ -229,8 +212,8 @@ export function Participant({
               </h2>
               <p>
                 {confirmed
-                  ? "Your payment is verified. Explore the toolkit, validate your problem, and start building your idea."
-                  : "Your team details are saved. An organizer will verify your payment before confirming your place. You don’t need to register again."}
+                  ? "Your registration is confirmed. Explore the toolkit, validate your problem, and start building your idea."
+                  : "Your team details are saved. Our organizing team will contact your team leader on WhatsApp with the next steps. You don’t need to register again."}
               </p>
               {confirmed && (
                 <Link
@@ -247,14 +230,14 @@ export function Participant({
           <div className="dashboard-grid">
             <div className="workspace-card">
               <div className="card-header">
-                <h2>Registration & payment</h2>
+                <h2>Your registration</h2>
                 <ShieldCheck size={16} />
               </div>
               <dl className="payment-detail-list">
                 <div>
                   <dt>STATUS</dt>
                   <dd>
-                    <Status status={team.payment.status} />
+                    <Status status={team.registrationStatus} />
                   </dd>
                 </div>
                 <div>
@@ -262,8 +245,8 @@ export function Participant({
                   <dd>PKR {team.payment.amount.toLocaleString()}</dd>
                 </div>
                 <div>
-                  <dt>TRANSACTION REFERENCE</dt>
-                  <dd>{team.payment.reference}</dd>
+                  <dt>REGISTERED ON</dt>
+                  <dd>{formatDate(team.createdAt)}</dd>
                 </div>
                 <div>
                   <dt>REGISTRATION ID</dt>
@@ -271,27 +254,10 @@ export function Participant({
                 </div>
               </dl>
               <div className="payment-help">
-                {team.payment.note && <p>{team.payment.note}</p>}
                 {confirmed
-                  ? "Your payment has been verified by the organizer."
-                  : "Only an authorized organizer can verify your payment."}
-                {team.payment.receiptId && (
-                  <p>
-                    <a href={`/api/files/${team.payment.receiptId}`}>
-                      Download your receipt ↗
-                    </a>
-                  </p>
-                )}
+                  ? "Your registration has been confirmed by the organizer."
+                  : ORGANIZER_FOLLOW_UP}
               </div>
-              {team.payment.status === "rejected" && (
-                <button
-                  className="text-link"
-                  style={{ marginTop: 15, fontSize: 12 }}
-                  onClick={() => changeTab("team")}
-                >
-                  Resolve payment details <ArrowRight size={12} />
-                </button>
-              )}
             </div>
             <div className="workspace-card deadline-card">
               <div className="card-header">
@@ -383,7 +349,7 @@ export function Participant({
               <Clock3 size={18} />
               <span>
                 {!confirmed
-                  ? "Project submissions unlock after your payment is verified."
+                  ? "Project submissions unlock after an organizer confirms your registration."
                   : !event.submissionDeadline
                     ? "Project submissions will open when the official submission deadline is announced."
                     : "The submission deadline has passed. Your last saved project is preserved."}
@@ -601,7 +567,7 @@ export function Participant({
             <div className="workspace-card span-two">
               <div className="card-header">
                 <h2>Registration details</h2>
-                <Status status={team.payment.status} />
+                <Status status={team.registrationStatus} />
               </div>
               <dl className="payment-detail-list">
                 <div>
@@ -613,8 +579,8 @@ export function Participant({
                   <dd>PKR 1,500 · entire team</dd>
                 </div>
                 <div>
-                  <dt>PAYMENT REFERENCE</dt>
-                  <dd>{team.payment.reference}</dd>
+                  <dt>WHATSAPP CONTACT</dt>
+                  <dd>{team.whatsapp}</dd>
                 </div>
                 <div>
                   <dt>REGISTERED ON</dt>
@@ -630,68 +596,7 @@ export function Participant({
                   View / print confirmation <Download size={13} />
                 </Link>
               )}
-              {team.payment.status === "rejected" && (
-                <form onSubmit={resubmitPayment} style={{ marginTop: 24 }}>
-                  <div className="notice notice-warning">
-                    <CreditCard size={17} />
-                    <span>{team.payment.note}</span>
-                  </div>
-                  <div className="form-grid" style={{ marginTop: 22 }}>
-                    <div className="field">
-                      <label htmlFor="retry-method">
-                        Official payment method
-                      </label>
-                      <select
-                        id="retry-method"
-                        value={methodId}
-                        onChange={(e) => setMethodId(e.target.value)}
-                        required
-                      >
-                        {event.paymentMethods.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label htmlFor="retry-reference">
-                        Transaction / reference ID
-                      </label>
-                      <input
-                        id="retry-reference"
-                        value={paymentRef}
-                        onChange={(e) => setPaymentRef(e.target.value)}
-                        minLength={3}
-                        maxLength={100}
-                        required
-                      />
-                    </div>
-                    <div className="field field-full">
-                      <label htmlFor="retry-receipt">
-                        New receipt <span>Optional · up to 3 MB</span>
-                      </label>
-                      <input
-                        id="retry-receipt"
-                        className="file-input"
-                        type="file"
-                        accept="image/png,image/jpeg,application/pdf"
-                        onChange={(e) =>
-                          setReceipt(e.target.files?.[0] || null)
-                        }
-                      />
-                    </div>
-                  </div>
-                  <LoadingButton
-                    busy={busy}
-                    type="submit"
-                    style={{ marginTop: 20 }}
-                    disabled={!event.paymentMethods.length}
-                  >
-                    Resubmit for verification <ArrowRight size={14} />
-                  </LoadingButton>
-                </form>
-              )}
+              <p className="payment-help">{ORGANIZER_FOLLOW_UP}</p>
             </div>
           </div>
         </>

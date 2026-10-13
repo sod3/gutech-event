@@ -1,3 +1,4 @@
+import { registrationStatus } from "@/lib/registration";
 import { collections } from "@/lib/db";
 import { getSettings } from "@/lib/event";
 import { prepareFile } from "@/lib/files";
@@ -64,10 +65,10 @@ export async function POST(request: Request) {
       leaderId: user._id,
     });
     const settings = await getSettings();
-    if (!team || team.payment.status !== "confirmed")
+    if (!team || registrationStatus(team) !== "confirmed")
       throw new HttpError(
         403,
-        "Payment verification is required for project uploads.",
+        "Organizer confirmation is required for project uploads.",
       );
     if (
       !settings.submissionDeadline ||
@@ -79,6 +80,12 @@ export async function POST(request: Request) {
     try {
       await session.withTransaction(async () => {
         await lockOpenEvent(session, true);
+        const latest = await c.teams.findOne({ _id: team._id }, { session });
+        if (!latest || registrationStatus(latest) !== "confirmed")
+          throw new HttpError(
+            403,
+            "Organizer confirmation is required for project uploads.",
+          );
         await c.files.insertOne(file, { session });
         await c.teams.updateOne(
           { _id: team._id },

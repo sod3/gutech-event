@@ -26,7 +26,11 @@ export async function GET() {
           .toArray(),
       ]);
     return json({
-      teams: teams.map((t) => safeTeam(t)),
+      teams: teams.map((t) => ({
+        ...safeTeam(t),
+        internalNotes: t.internalNotes || "",
+        whatsappConsent: t.whatsappConsent === true,
+      })),
       settings,
       judges: judges.map((j) => ({
         id: j._id.toString(),

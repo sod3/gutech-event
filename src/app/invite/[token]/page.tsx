@@ -1,3 +1,4 @@
+import { registrationStatus } from "@/lib/registration";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header, Footer, SectionLabel, Status } from "@/components/ui";
@@ -17,7 +18,7 @@ export default async function Page({
     await collections()
   ).teams.findOne(
     { inviteToken: token },
-    { projection: { name: 1, "payment.status": 1 } },
+    { projection: { name: 1, registrationStatus: 1, "payment.status": 1 } },
   );
   if (!team) notFound();
   return (
@@ -30,7 +31,7 @@ export default async function Page({
           <br />
           <span className="gradient-text">{team.name}.</span>
         </h1>
-        <Status status={team.payment.status} />
+        <Status status={registrationStatus(team)} />
         <p style={{ marginTop: 23 }}>
           Your team leader has shared this BuildFest 2026 invitation with you.
           Connect with them for your team’s registered lineup and project plans.

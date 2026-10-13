@@ -1,3 +1,4 @@
+import { CONFIRMED_TEAM_FILTER } from "@/lib/registration";
 import { z } from "zod";
 import { collections } from "@/lib/db";
 import { getSettings } from "@/lib/event";
@@ -22,7 +23,7 @@ export async function GET() {
       c.teams
         .find({
           _id: { $in: assignments.map((a) => a.teamId) },
-          "payment.status": "confirmed",
+          ...CONFIRMED_TEAM_FILTER,
         })
         .toArray(),
       c.scores.find({ judgeId: judge._id }).toArray(),
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
     if (
       !(await c.teams.findOne({
         _id: teamId,
-        "payment.status": "confirmed",
+        ...CONFIRMED_TEAM_FILTER,
         "submission.final": true,
       }))
     )
@@ -84,6 +85,16 @@ export async function POST(request: Request) {
     try {
       await session.withTransaction(async () => {
         await lockOpenEvent(session);
+        if (
+          !(await c.teams.findOne(
+            { _id: teamId, ...CONFIRMED_TEAM_FILTER, "submission.final": true },
+            { session },
+          ))
+        )
+          throw new HttpError(
+            409,
+            "A confirmed final project submission is required before scoring.",
+          );
         if (
           !(await c.assignments.findOne(
             { judgeId: judge._id, teamId },

@@ -1,3 +1,4 @@
+import { CONFIRMED_TEAM_FILTER } from "@/lib/registration";
 import { redirect } from "next/navigation";
 import { Ticket } from "@/components/ticket";
 import { currentUser } from "@/lib/security";
@@ -15,7 +16,7 @@ export default async function Page() {
   ).teams.findOne({
     _id: user.teamId,
     leaderId: user._id,
-    "payment.status": "confirmed",
+    ...CONFIRMED_TEAM_FILTER,
   });
   if (!team) redirect("/dashboard");
   return <Ticket team={safeTeam(team)} event={await publicEvent()} />;

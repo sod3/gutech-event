@@ -4869,3 +4869,28 @@ h2 {
     margin-top: 2px;
   }
 }
+/* Registration updates reuse the existing cards, typography, and motion. */
+.button-whatsapp {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+  white-space: nowrap;
+}
+.button-whatsapp:hover { background: #166534; border-color: #166534; color: #fff; }
+.registration-view-button { margin-top: 12px; }
+.registration-review-field { margin: 20px 0; }
+.review-edit { float: right; font-size: 12px; }
+.status-new { color: #996414; background: #fff8e8; }
+.status-contacted { color: #1962bd; background: #edf5ff; }
+.status-awaiting_confirmation { color: #7150b7; background: #f5f0ff; }
+.registration-success-page { padding: 1px 0 40px; min-height: 100vh; }
+.registration-success h1 { font-size: clamp(28px, 4vw, 42px); line-height: 1.2; }
+.registration-success h3 { font-size: 23px; font-weight: 550; }
+.registration-success-icon { display: grid; place-items: center; width: 72px; height: 72px; margin: 30px auto 20px; border-radius: 50%; color: #15803d; background: #ecfdf3; animation: confirm-pop .55s .12s both; }
+.success-members { margin: 20px 0; }
+.success-members p { margin: 12px 0; overflow-wrap: anywhere; }
+.success-members small { display: block; font-size: 11px; color: var(--foreground); opacity: .65; margin-top: 4px; }
+.success-status { display: grid; justify-items: center; gap: 10px; margin: 25px 0; }
+.success-status > small { font-size: 10px; letter-spacing: .12em; }
+@media (max-width: 600px) { .registration-success .ticket-actions { flex-direction: column; } .review-edit { float: none; display: block; margin-top: 10px; } }
+@media (prefers-reduced-motion: reduce) { .registration-success-icon { animation: none; } }

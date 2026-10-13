@@ -133,7 +133,7 @@ export function apiError(error: unknown) {
     return NextResponse.json(
       {
         error:
-          "This team name, participant email, or transaction reference is already registered. Sign in to your existing team or contact the organizer.",
+          "This team name or participant email is already registered. Sign in to your existing team or contact the organizer.",
       },
       { status: 409 },
     );

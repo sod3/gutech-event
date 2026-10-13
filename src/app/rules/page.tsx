@@ -32,9 +32,9 @@ export default function Page() {
             hidden charges.
           </li>
           <li>
-            Registration is confirmed only after an organizer verifies the
-            payment. A submitted form or uploaded receipt alone is not
-            confirmation.
+            Registration is received when your team details are saved. An
+            organizer will contact the team leader on WhatsApp and confirm your
+            place manually after the next steps are complete.
           </li>
         </ul>
         <h2>Your idea & your tools</h2>
@@ -87,11 +87,12 @@ export default function Page() {
         </p>
         <h2>Payments & refunds</h2>
         <p>
-          Use only official payment instructions shown during registration.
-          Review the organizer’s{" "}
+          Our organizing team will contact you on WhatsApp with further details,
+          including registration fee payment instructions. Review the
+          organizer’s{" "}
           <a href="/privacy">refund policy and privacy information</a> before
-          paying. If a payment needs correction, the leader can resubmit its
-          details from the dashboard.
+          paying. Contact the organizing team directly about payment or refund
+          questions.
         </p>
       </main>
       <Footer />

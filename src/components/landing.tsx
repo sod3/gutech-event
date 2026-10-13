@@ -219,7 +219,7 @@ export function Landing({ event }: { event: PublicEvent }) {
     ],
     [
       "How much does registration cost?",
-      "PKR 1,500 for the entire team, whether you participate alone or with two teammates. There are no hidden charges. Follow the official payment instructions during registration; organizers verify every payment before confirmation.",
+      "PKR 1,500 per team, whether you participate alone or with two teammates. Enter your team details, review, and submit. Our organizing team will contact you on WhatsApp with further details, including registration fee payment instructions.",
     ],
     [
       "Can I join on my own?",
@@ -238,9 +238,8 @@ export function Landing({ event }: { event: PublicEvent }) {
       `The event takes place at GUtech University, Pakistan. ${event.eventDate ? `The confirmed date is ${formatDate(event.eventDate)}.` : "The official event date and schedule will be announced here once confirmed."}`,
     ],
     [
-      "How do refunds and payment support work?",
-      event.refundPolicy ||
-        "The organizer’s refund policy and payment support details will be published before registration opens. Please review that information before transferring a payment.",
+      "What happens after I register?",
+      "Your details are securely saved and you receive a registration ID immediately. Our organizing team will contact your team leader on WhatsApp with next steps and payment instructions. Your place is confirmed manually by an organizer.",
     ],
   ];
   return (
@@ -691,7 +690,7 @@ export function Landing({ event }: { event: PublicEvent }) {
         <section className="trust-band">
           <div className="container trust-band-inner">
             <span>
-              <ShieldCheck size={19} /> Transparent fees. Verified payments.
+              <ShieldCheck size={19} /> Simple registration. Personal follow-up.
             </span>
             <Link href="/privacy">
               Privacy & refund information <ArrowUpRight size={14} />
@@ -713,8 +712,8 @@ export function Landing({ event }: { event: PublicEvent }) {
           <div className="container real-team-count">
             <Users size={14} />
             {event.confirmedTeams}{" "}
-            {event.confirmedTeams === 1 ? "team has" : "teams have"} a verified
-            registration. Make your idea the next one.
+            {event.confirmedTeams === 1 ? "team has" : "teams have"} an
+            organizer-confirmed registration. Make your idea the next one.
           </div>
         )}
       </main>

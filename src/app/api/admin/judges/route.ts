@@ -1,3 +1,4 @@
+import { CONFIRMED_TEAM_FILTER } from "@/lib/registration";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
@@ -70,13 +71,23 @@ export async function PUT(request: Request) {
         role: "judge",
         disabled: false,
       })) ||
-      !(await c.teams.findOne({ _id: teamId, "payment.status": "confirmed" }))
+      !(await c.teams.findOne({ _id: teamId, ...CONFIRMED_TEAM_FILTER }))
     )
       throw new HttpError(400, "Assign an active judge to a confirmed team.");
     const session = c.client.startSession();
     try {
       await session.withTransaction(async () => {
         await lockOpenEvent(session);
+        if (
+          !(await c.teams.findOne(
+            { _id: teamId, ...CONFIRMED_TEAM_FILTER },
+            { session },
+          ))
+        )
+          throw new HttpError(
+            409,
+            "The team is no longer confirmed. Refresh before assigning a judge.",
+          );
         if (input.assigned)
           await c.assignments.updateOne(
             { judgeId, teamId },

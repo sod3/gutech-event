@@ -1,4 +1,5 @@
 import type { ObjectId, Binary } from "mongodb";
+import type { RegistrationStatus } from "./registration";
 
 export type Role = "participant" | "admin" | "judge";
 export type PaymentStatus = "pending" | "confirmed" | "rejected";
@@ -72,11 +73,17 @@ export type TeamDoc = {
   members: Member[];
   whatsapp: string;
   department: string;
+  registrationStatus?: RegistrationStatus;
+  internalNotes?: string;
+  whatsappConsent?: boolean;
+  whatsappConsentAt?: Date;
+  registrationKey?: string;
+  registrationFingerprint?: string;
   payment: {
     status: PaymentStatus;
-    methodId: string;
-    reference: string;
-    referenceKey: string;
+    methodId?: string;
+    reference?: string;
+    referenceKey?: string;
     amount: number;
     receiptId?: ObjectId;
     note: string;
@@ -96,10 +103,11 @@ export type SafeTeam = {
   members: Member[];
   whatsapp: string;
   department: string;
+  registrationStatus: RegistrationStatus;
   payment: {
     status: PaymentStatus;
-    methodId: string;
-    reference: string;
+    methodId?: string;
+    reference?: string;
     amount: number;
     receiptId?: string;
     note: string;
@@ -239,7 +247,7 @@ export function registrationState(settings: EventSettings) {
     return {
       open: false,
       reason:
-        "Registration is opening soon. Official dates and payment details will be announced here.",
+        "Registration is opening soon. Official dates will be announced here.",
     };
   if (!settings.registrationDeadline)
     return {
@@ -252,22 +260,6 @@ export function registrationState(settings: EventSettings) {
       open: false,
       reason:
         "Registration has closed. Thank you for your interest in BuildFest 2026.",
-    };
-  if (
-    !settings.paymentMethods.some(
-      (m) => m.enabled && m.accountNumber && m.accountTitle,
-    )
-  )
-    return {
-      open: false,
-      reason:
-        "Official payment instructions are being finalized. Your draft stays saved on this device.",
-    };
-  if (!settings.supportEmail || !settings.refundPolicy)
-    return {
-      open: false,
-      reason:
-        "Registration will open once organizer support and refund information are confirmed.",
     };
   return { open: true, reason: "Registration is open" };
 }

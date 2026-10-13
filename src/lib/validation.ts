@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeWhatsApp } from "./registration";
 
 const clean = (max: number) => z.string().trim().max(max);
 export const emailSchema = z
@@ -19,24 +20,29 @@ const member = z.object({
   name: clean(100).min(2, "Enter a full name."),
   email: emailSchema,
 });
+export const whatsappSchema = clean(24)
+  .refine(
+    (value) => normalizeWhatsApp(value) !== null,
+    "Enter a valid WhatsApp mobile number, e.g. 03001234567 or +923001234567.",
+  )
+  .transform((value) => `+${normalizeWhatsApp(value)}`);
+export const teamDetailsSchema = z.object({
+  teamName: clean(80).min(2, "Give your team a name."),
+  leaderName: clean(100).min(2, "Enter your full name."),
+  email: emailSchema,
+  password: passwordSchema,
+  whatsapp: whatsappSchema,
+  department: clean(100).min(2, "Enter your department or program."),
+  teamSize: z.number().int().min(1).max(3),
+});
 export const registrationSchema = z
   .object({
-    teamName: clean(80).min(2, "Give your team a name."),
-    leaderName: clean(100).min(2, "Enter your full name."),
-    email: emailSchema,
-    password: passwordSchema,
-    whatsapp: clean(24).regex(
-      /^\+?[\d\s()-]{10,24}$/,
-      "Enter a valid WhatsApp number.",
-    ),
-    department: clean(100).min(2, "Enter your department or program."),
-    teamSize: z.number().int().min(1).max(3),
+    ...teamDetailsSchema.shape,
     members: z.array(member).max(2),
-    methodId: clean(80).min(1),
-    reference: clean(100).min(
-      3,
-      "Enter the payment transaction or reference ID.",
-    ),
+    requestId: z.string().uuid(),
+    whatsappConsent: z.literal(true, {
+      error: "Please consent to WhatsApp contact from the organizers.",
+    }),
     agreement: z.literal(true, {
       error: "Please agree to the event rules and privacy policy.",
     }),
@@ -159,17 +165,10 @@ export const settingsSchema = z
         path: ["paymentMethods"],
         message: "Payment method identifiers must be unique.",
       });
-    if (
-      v.registrationOpen &&
-      (!v.registrationDeadline ||
-        !v.paymentMethods.some((m) => m.enabled) ||
-        !v.supportEmail ||
-        !v.refundPolicy)
-    )
+    if (v.registrationOpen && !v.registrationDeadline)
       ctx.addIssue({
         code: "custom",
         path: ["registrationOpen"],
-        message:
-          "Set a deadline, official payment method, support email, and refund policy before opening registration.",
+        message: "Set a registration deadline before opening registration.",
       });
   });
