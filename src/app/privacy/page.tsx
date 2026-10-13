@@ -62,7 +62,7 @@ export default async function Page() {
               requests.
             </>
           ) : (
-            "Official organizer contact details are being finalized and will be published before registration opens."
+            "Our organizing team will contact your team leader on WhatsApp after registration. Official support details will be published here."
           )}
         </p>
         {event.supportWhatsApp && (

@@ -109,7 +109,7 @@ export function Login({
                 Contact the organizer.
               </a>
             ) : (
-              "Organizer support details will be announced before registration opens."
+              "Our organizers will contact your team leader on WhatsApp with registration details."
             )}
           </div>
         </form>

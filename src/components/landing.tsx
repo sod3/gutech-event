@@ -635,9 +635,9 @@ export function Landing({ event }: { event: PublicEvent }) {
                 </a>
               ) : (
                 <p className="support-pending">
-                  Organizer contact details will be
+                  Our organizers will contact
                   <br />
-                  published before registration opens.
+                  team leaders on WhatsApp.
                 </p>
               )}
             </Reveal>
