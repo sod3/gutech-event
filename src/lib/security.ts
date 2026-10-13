@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { collections } from "./db";
 import type { Role, UserDoc } from "./types";
+import { adminOwnerAllowed } from "./admin-owner";
 
 export class HttpError extends Error {
   constructor(
@@ -79,7 +80,8 @@ export async function currentUser(): Promise<UserDoc | null> {
     expiresAt: { $gt: new Date() },
   });
   if (!session) return null;
-  return c.users.findOne({ _id: session.userId, disabled: false });
+  const user = await c.users.findOne({ _id: session.userId, disabled: false });
+  return user && adminOwnerAllowed(user) ? user : null;
 }
 export async function authorize(roles?: Role[]) {
   const user = await currentUser();

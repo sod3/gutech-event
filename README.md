@@ -13,6 +13,12 @@ Open the Local URL printed by Next.js (normally `http://localhost:3000`). The pr
 
 For a fresh checkout, copy `.env.example` to `.env.local` and supply `MONGODB_URI`, `MONGODB_DB`, and `APP_URL`.
 
+## Private owner admin credentials
+
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` together in the server environment to restrict all organizer login and session access to one owner. The hash must be bcrypt with cost 12. Store it as `bcrypt:<base64url-encoded bcrypt hash>` so Next.js environment expansion preserves its dollar signs. The plaintext `ADMIN_PASSWORD` is kept only in the ignored `.env.local` file for the owner to retrieve; the application never uses or sends it to the browser. Vercel stores the email and hash as sensitive server-only environment variables. Never use `NEXT_PUBLIC_` for these values.
+
+The owner's first successful sign-in provisions the admin record in the existing database. A changed environment hash rotates the owner credentials and revokes old owner sessions. Other database admin accounts and their existing sessions are denied by the owner restriction. Existing participant and judge accounts continue to work; an email belonging to one of those accounts is never automatically promoted. A partial owner configuration fails closed. This setup requires a working database connection.
+
 ## Provision the first organizer
 
 ```powershell
@@ -21,7 +27,7 @@ npm run setup:admin
 
 Enter the real organizer’s email, name, and a strong password (at least 12 characters, no more than 72 UTF-8 bytes). The password is masked in the terminal and stored as a bcrypt hash. The command does not create default credentials, does not overwrite existing accounts, and records provisioning in the audit log. Then sign in at `/login?role=admin`.
 
-Organizer accounts can only be provisioned by this trusted CLI. There is no public admin signup or bootstrap endpoint. Judges are provisioned by an authenticated organizer from **Projects & judging**.
+Without an environment-configured owner, organizer accounts can be provisioned by this trusted CLI. When the owner restriction is configured, only the configured owner can access the organizer dashboard. There is no public admin signup or bootstrap endpoint. Judges are provisioned by an authenticated organizer from **Projects & judging**.
 
 ## Configure before opening registration
 

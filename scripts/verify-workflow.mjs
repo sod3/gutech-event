@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { MongoClient, ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
@@ -26,11 +26,13 @@ const prodBefore = await client
 const password = `Verification-${suffix}`;
 const adminEmail = `admin-${suffix}@example.test`;
 const adminId = new ObjectId();
+const adminPasswordHash = await bcrypt.hash(password, 12);
+const legacyAdminEmail = `legacy-admin-${suffix}@example.test`;
 await db.collection("users").insertOne({
   _id: adminId,
-  email: adminEmail,
-  name: "Verification Organizer",
-  passwordHash: await bcrypt.hash(password, 12),
+  email: legacyAdminEmail,
+  name: "Legacy Verification Organizer",
+  passwordHash: adminPasswordHash,
   role: "admin",
   disabled: false,
   createdAt: new Date(),
@@ -80,6 +82,9 @@ const server = spawn(
       ...process.env,
       MONGODB_DB: testDbName,
       APP_URL: base,
+      ADMIN_EMAIL: adminEmail,
+      ADMIN_PASSWORD_HASH: `bcrypt:${Buffer.from(adminPasswordHash).toString("base64url")}`,
+      ADMIN_PASSWORD: "",
       SMTP_HOST: "",
       SMTP_USER: "",
       SMTP_PASSWORD: "",
@@ -221,10 +226,82 @@ try {
     "unconfigured registration stays closed",
     (await guest("/api/register", "POST", form(registration))).status === 409,
   );
+  const ownerSignIn = await admin("/api/auth/login", "POST", {
+    email: adminEmail,
+    password,
+  });
+  if (ownerSignIn.status !== 200)
+    console.log(
+      JSON.stringify({
+        status: ownerSignIn.status,
+        error: ownerSignIn.data.error,
+        serverLog: serverLog.slice(-1200),
+      }),
+    );
+  check("organizer can sign in", ownerSignIn.status === 200);
   check(
-    "organizer can sign in",
+    "configured owner is provisioned from the server secret",
+    (await db.collection("users").findOne({ email: adminEmail }))
+      .passwordHash === adminPasswordHash,
+  );
+  check(
+    "other database admin credentials are denied",
+    (
+      await makeClient()("/api/auth/login", "POST", {
+        email: legacyAdminEmail,
+        password,
+      })
+    ).status === 401,
+  );
+  const legacySessionToken = randomBytes(32).toString("base64url");
+  await db.collection("sessions").insertOne({
+    _id: new ObjectId(),
+    tokenHash: createHash("sha256").update(legacySessionToken).digest("hex"),
+    userId: adminId,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 86400000),
+  });
+  check(
+    "existing non-owner admin sessions cannot access private data",
+    (
+      await makeClient()("/api/admin", "GET", undefined, {
+        headers: { cookie: `bf_session=${legacySessionToken}` },
+      })
+    ).status === 401,
+  );
+  const oldOwner = makeClient();
+  check(
+    "owner can open another session",
+    (await oldOwner("/api/auth/login", "POST", { email: adminEmail, password }))
+      .status === 200,
+  );
+  await db
+    .collection("users")
+    .updateOne(
+      { email: adminEmail },
+      { $set: { passwordHash: await bcrypt.hash("old-owner-password", 12) } },
+    );
+  check(
+    "obsolete owner credentials invalidate an existing session",
+    (await oldOwner("/api/admin")).status === 401,
+  );
+  check(
+    "server secret restores owner credentials safely",
     (await admin("/api/auth/login", "POST", { email: adminEmail, password }))
       .status === 200,
+  );
+  check(
+    "owner credential rotation revokes old sessions",
+    (await oldOwner("/api/admin")).status === 401,
+  );
+  check(
+    "old owner password cannot sign in",
+    (
+      await makeClient()("/api/auth/login", "POST", {
+        email: adminEmail,
+        password: "old-owner-password",
+      })
+    ).status === 401,
   );
   check(
     "incomplete opening configuration rejected",
