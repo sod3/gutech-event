@@ -36,6 +36,9 @@ export const metadata: Metadata = {
     description: "The next big idea could be yours.",
   },
   robots: { index: true, follow: true },
+  verification: {
+    google: "ksPme2yJzX9I1yhuyQYrwfQnBEAiKoCqh976CaL08WA",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
