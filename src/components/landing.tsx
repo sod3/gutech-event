@@ -32,6 +32,7 @@ import {
   formatDate,
 } from "./ui";
 import { CRITERIA, registrationState, type PublicEvent } from "@/lib/types";
+import { usePublicEvent } from "./use-public-event";
 
 function IdeaSculpture() {
   const [stage, setStage] = useState(0);
@@ -209,9 +210,16 @@ const phases = [
     icon: Rocket,
   },
 ];
-export function Landing({ event }: { event: PublicEvent }) {
+export function Landing({ event: initialEvent }: { event: PublicEvent }) {
+  const event = usePublicEvent(initialEvent);
   const [activeCriterion, setActiveCriterion] = useState(0);
-  const state = registrationState(event);
+  const state = event.available
+    ? registrationState(event)
+    : {
+        open: false,
+        reason:
+          "Registration is temporarily unavailable. Please check back shortly.",
+      };
   const faqs = [
     [
       "Who can participate?",

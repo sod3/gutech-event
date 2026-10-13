@@ -22,6 +22,7 @@ import {
   registrationSchema,
 } from "@/lib/validation";
 import { ORGANIZER_FOLLOW_UP } from "@/lib/registration";
+import { usePublicEvent } from "./use-public-event";
 import { registrationState, type Member, type PublicEvent } from "@/lib/types";
 import {
   api,
@@ -68,7 +69,8 @@ const memberSchema = z.object({
     )
     .max(2),
 });
-export function Registration({ event }: { event: PublicEvent }) {
+export function Registration({ event: initialEvent }: { event: PublicEvent }) {
+  const event = usePublicEvent(initialEvent);
   const router = useRouter();
   const [data, setData] = useState<Draft>(empty);
   const [step, setStep] = useState(0);
@@ -79,7 +81,13 @@ export function Registration({ event }: { event: PublicEvent }) {
   const completed = useRef(false);
   const [ready, setReady] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const state = registrationState(event);
+  const state = event.available
+    ? registrationState(event)
+    : {
+        open: false,
+        reason:
+          "Registration is temporarily unavailable. Your draft stays saved on this device. Please try again shortly.",
+      };
   useEffect(() => {
     const hydrationTimer = setTimeout(() => {
       let requestId = crypto.randomUUID();
