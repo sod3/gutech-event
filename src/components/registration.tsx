@@ -37,6 +37,7 @@ type Draft = {
   leaderName: string;
   email: string;
   whatsapp: string;
+  institution: string;
   department: string;
   teamSize: number;
   members: Member[];
@@ -50,6 +51,7 @@ const empty: Draft = {
   leaderName: "",
   email: "",
   whatsapp: "",
+  institution: "",
   department: "",
   teamSize: 1,
   members: [],
@@ -108,12 +110,17 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
           setData({
             ...empty,
             ...Object.fromEntries(
-              ["teamName", "leaderName", "email", "whatsapp", "department"].map(
-                (key) => [
-                  key,
-                  typeof stored[key] === "string" ? stored[key] : "",
-                ],
-              ),
+              [
+                "teamName",
+                "leaderName",
+                "email",
+                "whatsapp",
+                "institution",
+                "department",
+              ].map((key) => [
+                key,
+                typeof stored[key] === "string" ? stored[key] : "",
+              ]),
             ),
             password: "",
             agreement: false,
@@ -284,13 +291,24 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                 ? "name"
                 : key === "whatsapp"
                   ? "tel"
-                  : "off"
+                  : key === "institution"
+                    ? "organization"
+                    : "off"
         }
         aria-invalid={!!fields[key]}
         aria-describedby={
           fields[key] ? `${key}-error` : hint ? `${key}-hint` : undefined
         }
-        maxLength={key === "password" ? 128 : key === "email" ? 254 : 100}
+        required={key === "institution"}
+        maxLength={
+          key === "password"
+            ? 128
+            : key === "email"
+              ? 254
+              : key === "institution"
+                ? 160
+                : 100
+        }
       />
       {fields[key] && (
         <small className="field-error" id={`${key}-error`}>
@@ -337,13 +355,14 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
             No hidden charges. No per-member fees.
           </p>
         </div>
-        <div className="registration-summary">
+        <div className="registration-summary registration-schedule">
           <div>
             <small>EVENT DATE</small>
             <Clock3 size={16} color="#9baccc" />
           </div>
-          <p>{formatDate(event.eventDate)}</p>
+          <p>{formatDate(event.eventDate, true)}</p>
           <p>GUtech University, Pakistan</p>
+          <p>Registration closes: {formatDate(event.registrationDeadline)}</p>
         </div>
       </aside>
       <form
@@ -399,6 +418,13 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                 "email",
                 false,
                 "Any valid email works. No university email needed.",
+              )}
+              {field(
+                "institution",
+                "University / College",
+                "Enter your university or college",
+                "text",
+                true,
               )}
               {field("whatsapp", "WhatsApp number", "+92 3XX XXXXXXX", "tel")}
               {field(
@@ -525,6 +551,7 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                   Edit team details
                 </button>
                 <h3>{data.teamName}</h3>
+                <p>University / College: {data.institution}</p>
                 <p>
                   {data.department} · {data.teamSize}{" "}
                   {data.teamSize === 1 ? "member" : "members"}

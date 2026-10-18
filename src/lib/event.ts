@@ -76,6 +76,7 @@ export function safeTeam(team: TeamDoc, includeInvite = false): SafeTeam {
     name: team.name,
     members: team.members,
     whatsapp: team.whatsapp,
+    institution: team.institution,
     department: team.department,
     registrationStatus: registrationStatus(team),
     payment: {

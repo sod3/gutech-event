@@ -177,7 +177,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
   const visible = teams.filter(
     (t) =>
       (filter === "all" || t.registrationStatus === filter) &&
-      `${t.name} ${t.registrationId} ${t.members.map((m) => `${m.name} ${m.email}`).join(" ")} ${t.whatsapp} ${t.department} ${t.internalNotes}`
+      `${t.name} ${t.registrationId} ${t.members.map((m) => `${m.name} ${m.email}`).join(" ")} ${t.whatsapp} ${t.institution || ""} ${t.department} ${t.internalNotes}`
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -221,6 +221,10 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
         <div>
           <dt>WHATSAPP</dt>
           <dd>{team.whatsapp}</dd>
+        </div>
+        <div>
+          <dt>UNIVERSITY / COLLEGE</dt>
+          <dd>{team.institution || "Not recorded"}</dd>
         </div>
         <div>
           <dt>DEPARTMENT</dt>
@@ -359,7 +363,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
       <div className="table-toolbar">
         <input
           aria-label="Search teams"
-          placeholder="Search teams, emails, IDs, WhatsApp, departments…"
+          placeholder="Search teams, emails, universities, departments…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -385,6 +389,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                   <th>TEAM</th>
                   <th>TEAM LEADER</th>
                   <th>WHATSAPP</th>
+                  <th>UNIVERSITY / COLLEGE</th>
                   <th>DEPARTMENT</th>
                   <th>SIZE</th>
                   <th>REGISTERED</th>
@@ -405,6 +410,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                       <small>{t.members[0].email}</small>
                     </td>
                     <td>{t.whatsapp}</td>
+                    <td>{t.institution || "Not recorded"}</td>
                     <td>{t.department}</td>
                     <td>{t.members.length}</td>
                     <td>{formatDate(t.createdAt)}</td>

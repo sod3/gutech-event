@@ -17,8 +17,8 @@ export default async function Page() {
         <h2>What we collect</h2>
         <p>
           We collect team and participant names, email addresses, the leader’s
-          WhatsApp number, department, team size, consent to WhatsApp contact,
-          and competition submissions. The leader’s password is stored as a
+          WhatsApp number, university or college, department, team size, consent
+          to WhatsApp contact, and competition submissions. The leader’s password is stored as a
           one-way hash.
         </p>
         <h2>Why we use it</h2>

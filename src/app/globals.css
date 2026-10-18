@@ -735,6 +735,15 @@ p {
   align-items: center;
   gap: 8px;
 }
+.hero-event-date {
+  display: block;
+  margin-top: 5px;
+  font-weight: 600;
+}
+.hero-deadline p {
+  margin: 0 0 8px;
+  line-height: 1.6;
+}
 .date-pending {
   display: flex;
   align-items: center;
@@ -3503,6 +3512,11 @@ h2 {
   }
   .registration-summary {
     display: none;
+  }
+  .registration-summary.registration-schedule {
+    display: block;
+    max-width: none;
+    margin-top: 24px;
   }
   .login-art {
     padding-inline: 12%;

@@ -252,6 +252,20 @@ export function Participant({
                   <dt>REGISTRATION ID</dt>
                   <dd>{team.registrationId}</dd>
                 </div>
+                <div>
+                  <dt>EVENT DATE</dt>
+                  <dd>{formatDate(event.eventDate, true)}</dd>
+                </div>
+                {team.institution && (
+                  <div>
+                    <dt>UNIVERSITY / COLLEGE</dt>
+                    <dd>{team.institution}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>REGISTRATION CLOSES</dt>
+                  <dd>{formatDate(event.registrationDeadline)}</dd>
+                </div>
               </dl>
               <div className="payment-help">
                 {confirmed

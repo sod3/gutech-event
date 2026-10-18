@@ -18,6 +18,7 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+export { formatDate } from "@/lib/dates";
 
 export function Brand({ small = false }: { small?: boolean }) {
   return (
@@ -329,15 +330,6 @@ export function Countdown({
       ))}
     </div>
   );
-}
-export function formatDate(date: string) {
-  return date
-    ? new Intl.DateTimeFormat("en-PK", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Karachi",
-      }).format(new Date(date)) + " PKT"
-    : "To be announced";
 }
 export function ArrowLink({
   href,

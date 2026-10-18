@@ -243,7 +243,13 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
     ],
     [
       "When and where is the event?",
-      `The event takes place at GUtech University, Pakistan. ${event.eventDate ? `The confirmed date is ${formatDate(event.eventDate)}.` : "The official event date and schedule will be announced here once confirmed."}`,
+      `The event takes place at GUtech University, Pakistan. ${event.eventDate ? `The confirmed date is ${formatDate(event.eventDate, true)}.` : "The official event date and schedule will be announced here once confirmed."}`,
+    ],
+    [
+      "When does registration close?",
+      event.registrationDeadline
+        ? `Registration closes on ${formatDate(event.registrationDeadline)}. Complete your team registration before the deadline; signups close automatically.`
+        : "The official registration deadline will be announced here.",
     ],
     [
       "What happens after I register?",
@@ -307,9 +313,23 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
           <div className="container hero-bottom">
             <div className="hero-location">
               <MapPin size={16} />
-              <span>GUtech University, Pakistan</span>
+              <span>
+                GUtech University, Pakistan
+                {event.eventDate && (
+                  <span className="hero-event-date">
+                    {formatDate(event.eventDate, true)}
+                  </span>
+                )}
+              </span>
             </div>
-            <Countdown deadline={event.registrationDeadline} />
+            <div className="hero-deadline">
+              {event.registrationDeadline && (
+                <p>
+                  Registration closes {formatDate(event.registrationDeadline)}
+                </p>
+              )}
+              <Countdown deadline={event.registrationDeadline} />
+            </div>
             <a href="#challenge" className="scroll-cue">
               SCROLL TO DISCOVER <ArrowDown size={13} />
             </a>

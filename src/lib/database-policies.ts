@@ -41,6 +41,8 @@ export async function applyDatabasePolicies(db: Db) {
         leaderId: { bsonType: "objectId" },
         name: { bsonType: "string", minLength: 2, maxLength: 80 },
         nameKey: { bsonType: "string" },
+        // Required by new registration validation; absent on existing teams.
+        institution: { bsonType: "string", minLength: 2, maxLength: 160 },
         registrationStatus: {
           enum: ["new", "contacted", "awaiting_confirmation", "confirmed"],
         },

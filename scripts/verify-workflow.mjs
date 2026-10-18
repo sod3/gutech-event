@@ -38,6 +38,18 @@ await db.collection("users").insertOne({
   createdAt: new Date(),
 });
 const legacyId = new ObjectId();
+const legacyLeaderId = new ObjectId();
+const legacyLeaderEmail = `legacy-${suffix}@example.test`;
+await db.collection("users").insertOne({
+  _id: legacyLeaderId,
+  email: legacyLeaderEmail,
+  name: "Legacy Leader",
+  passwordHash: adminPasswordHash,
+  role: "participant",
+  teamId: legacyId,
+  disabled: false,
+  createdAt: new Date(),
+});
 const legacyPayment = {
   status: "confirmed",
   amount: 1500,
@@ -53,8 +65,8 @@ await db.collection("teams").insertOne({
   registrationId: "BF26-LEGACY",
   name: "Legacy Team",
   nameKey: "legacy team",
-  leaderId: adminId,
-  members: [{ name: "Legacy Leader", email: `legacy-${suffix}@example.test` }],
+  leaderId: legacyLeaderId,
+  members: [{ name: "Legacy Leader", email: legacyLeaderEmail }],
   whatsapp: "+923001234567",
   department: "Legacy program",
   payment: legacyPayment,
@@ -151,6 +163,7 @@ const registration = {
   email: `leader-${suffix}@example.test`,
   password,
   whatsapp: "+92 300 0000000",
+  institution: "Verification University",
   department: "Verification program",
   teamSize: 3,
   members: [
@@ -316,6 +329,7 @@ try {
     "official event settings persist",
     (await admin("/api/admin/settings", "PUT", settings)).status === 200,
   );
+  const legacyBefore = await db.collection("teams").findOne({ _id: legacyId });
   const legacy = (await admin("/api/admin")).data.teams.find(
     (t) => t.id === legacyId.toString(),
   );
@@ -328,7 +342,40 @@ try {
     (await db.collection("teams").findOne({ _id: legacyId })).payment
       .referenceKey === legacyPayment.referenceKey,
   );
+  const existingLeader = makeClient();
+  check(
+    "existing participants can sign in without a university or college",
+    (
+      await existingLeader("/api/auth/login", "POST", {
+        email: legacyLeaderEmail,
+        password,
+      })
+    ).status === 200,
+  );
+  check(
+    "existing registrations keep dashboard and ticket access without new fields",
+    (await existingLeader("/dashboard")).status === 200 &&
+      (await existingLeader("/dashboard/confirmation")).status === 200 &&
+      (await existingLeader("/register")).status === 307 &&
+      !Object.hasOwn((await existingLeader("/api/team")).data.team, "institution"),
+  );
+  assert.deepEqual(
+    await db.collection("teams").findOne({ _id: legacyId }),
+    legacyBefore,
+  );
+  check("existing registration data is not backfilled or changed", !Object.hasOwn(legacy, "institution"));
   await db.collection("teams").deleteOne({ _id: legacyId });
+  check(
+    "new registration requires a university or college",
+    (
+      await makeClient()("/api/register", "POST", form({
+        ...registration,
+        requestId: randomUUID(),
+        institution: undefined,
+      }))
+    ).status === 400 &&
+      (await db.collection("teams").countDocuments()) === 0,
+  );
   const submissions = await Promise.all([
     leader("/api/register", "POST", form(registration)),
     makeClient()("/api/register", "POST", form(registration)),
@@ -356,6 +403,12 @@ try {
   );
   check("three participants persist", team.members.length === 3);
   check(
+    "new registration saves the university or college",
+    team.institution === registration.institution &&
+      (await db.collection("teams").findOne({ _id: new ObjectId(team.id) }))
+        .institution === registration.institution,
+  );
+  check(
     "success page reads persisted registration",
     (await leader("/register/success")).status === 200 &&
       (await leader("/register/success")).data.includes(team.registrationId),
@@ -371,6 +424,7 @@ try {
         t.registrationId === team.registrationId &&
         t.members.length === 3 &&
         t.whatsapp === "+923000000000" &&
+        t.institution === registration.institution &&
         t.registrationStatus === "new" &&
         t.whatsappConsent,
     ),
@@ -886,6 +940,8 @@ try {
     csv.status === 200 &&
       csv.data.includes(team.registrationId) &&
       csv.data.includes("Registration status") &&
+      csv.data.includes('"University / College"') &&
+      csv.data.includes(registration.institution) &&
       csv.data.includes("Organizer approved registration.") &&
       csv.data.includes(registration.members[0].email),
   );

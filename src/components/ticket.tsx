@@ -53,7 +53,7 @@ export function Ticket({
             REGISTRATION STATUS<strong>Confirmed by organizers</strong>
           </span>
         </div>
-        <p>Event date: {formatDate(event.eventDate)}</p>
+        <p>Event date: {formatDate(event.eventDate, true)}</p>
         <p style={{ fontSize: 12 }}>
           Organized by GUtech Entrepreneurship Society
           <br />

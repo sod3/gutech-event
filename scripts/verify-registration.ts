@@ -7,6 +7,7 @@ import {
 } from "../src/lib/registration";
 import { registrationSchema } from "../src/lib/validation";
 import { DEFAULT_SETTINGS, registrationState } from "../src/lib/types";
+import { formatDate } from "../src/lib/dates";
 
 for (const number of [
   "03001234567",
@@ -68,6 +69,7 @@ const valid = {
   email: "LEADER@EXAMPLE.COM",
   password: "safe-test-password",
   whatsapp: "03001234567",
+  institution: "  Test University  ",
   department: "Business",
   teamSize: 1,
   members: [],
@@ -78,6 +80,7 @@ const valid = {
 const saved = registrationSchema.parse(valid);
 assert.equal(saved.whatsapp, "+923001234567");
 assert.equal(saved.email, "leader@example.com");
+assert.equal(saved.institution, "Test University");
 assert.equal("reference" in saved, false);
 for (const invalid of [
   { teamSize: 0 },
@@ -85,6 +88,11 @@ for (const invalid of [
   { whatsappConsent: false },
   { email: "bad" },
   { password: "short" },
+  { institution: undefined },
+  { institution: "" },
+  { institution: "   " },
+  { institution: "A" },
+  { institution: "A".repeat(161) },
   { teamSize: 2 },
   { members: [{ name: "Second", email: valid.email }] },
 ]) {
@@ -101,6 +109,29 @@ assert.equal(
   }).open,
   true,
 );
+const schedule = { ...DEFAULT_SETTINGS, registrationOpen: true };
+const deadline = new Date(schedule.registrationDeadline).getTime();
+const originalNow = Date.now;
+try {
+  for (const [now, expectedOpen] of [
+    [new Date("2026-10-22T23:59:59+05:00").getTime(), true],
+    [new Date("2026-10-30T00:00:00+05:00").getTime(), true],
+    [deadline - 1, true],
+    [deadline, false],
+    [new Date("2026-10-31T00:00:00+05:00").getTime(), false],
+  ] as const) {
+    Date.now = () => now;
+    assert.equal(registrationState(schedule).open, expectedOpen);
+  }
+} finally {
+  Date.now = originalNow;
+}
+assert.match(formatDate(schedule.eventDate, true), /30.*Oct.*2026/);
+assert.doesNotMatch(formatDate(schedule.eventDate, true), /AM|PM|PKT|:/i);
+assert.match(
+  formatDate(schedule.registrationDeadline),
+  /30.*Oct.*2026.*11:59.*pm.*PKT/i,
+);
 console.log(
-  "PASS registration validation, legacy statuses, international WhatsApp formats, and exact prefilled message.",
+  "PASS registration validation with required university/college, legacy statuses, international WhatsApp formats, exact prefilled message, and 30 October deadline boundaries in Pakistan time.",
 );

@@ -42,15 +42,19 @@ The organizer dashboard at `/admin` contains:
 
 Registration opens when the organizer enables it and configures an official registration deadline. Payment settings, support email, and a refund policy are not prerequisites for submission. Signups close automatically at the registration deadline. Event dates, prize values, logos, and people are never invented.
 
+The confirmed event date is **30 October 2026**. Registration closes automatically on **30 October 2026 at 11:59 PM PKT**. The website, countdown, registration form, rules, team dashboard, and confirmation ticket read the shared event settings. These dates are also the defaults for a fresh checkout; existing database settings must be updated separately.
+
 ## Registration workflow
 
-1. **Team:** team name, leader name, any valid email, WhatsApp number, department, size (1–3 including the leader), and a dashboard password.
+1. **Team:** team name, leader name, any valid email, WhatsApp number, university/college, department, size (1–3 including the leader), and a dashboard password.
 2. **Members:** dynamically collect names and emails for up to two additional members.
 3. **Review & Submit:** edit details, consent to WhatsApp contact, accept event rules, and select **Complete Registration →**.
 
 The account, team, registration ID, consent timestamp, and audit event are saved in one MongoDB transaction. Registration status starts as **New Registration**. `/register/success` reads the saved team through its authenticated leader session, including after a refresh. No payment reference, receipt, or payment method is required. The displayed fee remains **PKR 1,500 per team**. Organizers contact leaders on WhatsApp to share next steps and fee instructions.
 
-The admin dashboard lists full registrations, registration dates, members, department, international WhatsApp number, and status. It refreshes saved registrations every ten seconds and on window focus. Search/filter registrations, export CSV, add private internal notes, and manually select **New Registration**, **Contacted**, **Awaiting Confirmation**, or **Confirmed**. The green **Contact on WhatsApp** link opens the requested personalized message; the organizer chooses when to send it. Internal notes are excluded from participant and judge responses.
+University/college is required for new registrations and appears in organizer listings, search, team details, and CSV exports. Existing registrations remain valid without this field and are not asked to supply it.
+
+The admin dashboard lists full registrations, registration dates, members, university/college, department, international WhatsApp number, and status. It refreshes saved registrations every ten seconds and on window focus. Search/filter registrations, export CSV, add private internal notes, and manually select **New Registration**, **Contacted**, **Awaiting Confirmation**, or **Confirmed**. The green **Contact on WhatsApp** link opens the requested personalized message; the organizer chooses when to send it. Internal notes are excluded from participant and judge responses.
 
 A persisted request ID and transactional unique indexes prevent repeated clicks and response-loss retries from creating duplicate accounts or teams. Names and all participant emails remain unique. Pakistan mobile formats normalize to `+923xxxxxxxxx`; other countries require an international prefix. Existing records, authentication, payment history, and project data remain intact. Previously confirmed teams retain access. Manual registration confirmation does not mark a team paid. The obsolete payment-review and payment-resubmission endpoints are retired with HTTP 410 and cannot change stored payment records.
 

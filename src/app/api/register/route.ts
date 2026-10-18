@@ -80,6 +80,7 @@ export async function POST(request: Request) {
         ...input.members,
       ],
       whatsapp: input.whatsapp,
+      institution: input.institution,
       department: input.department,
       registrationStatus: "new",
       internalNotes: "",

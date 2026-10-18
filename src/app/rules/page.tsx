@@ -1,7 +1,11 @@
 import { Header, Footer, SectionLabel } from "@/components/ui";
+import { formatDate } from "@/lib/dates";
+import { publicEvent } from "@/lib/event";
 import { CRITERIA } from "@/lib/types";
 export const metadata = { title: "Event rules" };
-export default function Page() {
+export const dynamic = "force-dynamic";
+export default async function Page() {
+  const event = await publicEvent();
   return (
     <>
       <Header />
@@ -73,6 +77,12 @@ export default function Page() {
           research, and practical impact carry the most weight.
         </p>
         <h2>Submissions & deadlines</h2>
+        <p>
+          Event date: {formatDate(event.eventDate, true)}.
+          <br />
+          Registration closes: {formatDate(event.registrationDeadline)}.
+          Signups close automatically at this deadline.
+        </p>
         <p>
           The official schedule and deadlines are published by the organizers.
           Team leaders can save and edit their project, problem statement, pitch

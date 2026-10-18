@@ -32,6 +32,7 @@ export const teamDetailsSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   whatsapp: whatsappSchema,
+  institution: clean(160).min(2, "Enter your university or college."),
   department: clean(100).min(2, "Enter your department or program."),
   teamSize: z.number().int().min(1).max(3),
 });
