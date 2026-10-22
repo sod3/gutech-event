@@ -21,19 +21,31 @@ import {
 } from "@/lib/types";
 import { registrationStatus } from "@/lib/registration";
 import { registrationSchema } from "@/lib/validation";
+import { prepareFile } from "@/lib/files";
 export const runtime = "nodejs";
-
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
+    if (Number(request.headers.get("content-length")) > 4_300_000)
+      throw new HttpError(
+        413,
+        "Application is too large. Use a PDF smaller than 3 MB.",
+      );
     const form = await request.formData();
     const input = registrationSchema.parse(
       JSON.parse(String(form.get("data") || "{}")),
     );
     const c = await collections();
     await rateLimit(request, "register", 10, 15);
+    const upload = form.get("deck");
+    if (!(upload instanceof File))
+      throw new HttpError(400, "Upload your startup pitch deck as a PDF.");
+    const deck = await prepareFile(upload, "deck");
     const { password, ...details } = input;
-    const fingerprint = hash(JSON.stringify(details));
+    const fingerprint = hash(
+      JSON.stringify(details) +
+        hash(Buffer.from(deck.data.buffer).toString("base64")),
+    );
     const complete = async (team: TeamDoc, status: number) => {
       const leader = await c.users.findOne({
         _id: team.leaderId,
@@ -71,9 +83,12 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 12);
     const team: TeamDoc = {
       _id: teamId,
-      registrationId: `BF26-${randomBytes(5).toString("hex").toUpperCase()}`,
-      name: input.teamName,
-      nameKey: input.teamName.toLowerCase().replace(/\s+/g, " "),
+      registrationId: `LEAP3-${randomBytes(5).toString("hex").toUpperCase()}`,
+      name: input.startupName,
+      nameKey: input.startupName.toLowerCase().replace(/\s+/g, " "),
+      startupStage: input.startupStage,
+      startupDescription: input.startupDescription,
+      applicationDeckFileId: deck._id.toString(),
       leaderId: userId,
       members: [
         { name: input.leaderName, email: input.email },
@@ -82,7 +97,7 @@ export async function POST(request: Request) {
       whatsapp: input.whatsapp,
       institution: input.institution,
       department: input.department,
-      registrationStatus: "new",
+      registrationStatus: "pending",
       internalNotes: "",
       whatsappConsent: true,
       whatsappConsentAt: now,
@@ -90,12 +105,20 @@ export async function POST(request: Request) {
       registrationFingerprint: fingerprint,
       // Preserve the existing payment history shape without recording a payment.
       payment: { status: "pending", amount: FEE, note: "", submittedAt: now },
-      submission: { ...EMPTY_SUBMISSION },
+      submission: {
+        ...EMPTY_SUBMISSION,
+        title: input.startupName,
+        solution: input.startupDescription,
+        deckFileId: deck._id.toString(),
+        final: true,
+        updatedAt: now,
+      },
       checklist: [],
       inviteToken: randomToken(),
       createdAt: now,
     };
     const session = c.client.startSession();
+    deck.teamId = teamId;
     try {
       await session.withTransaction(async () => {
         await c.users.insertOne(
@@ -112,12 +135,13 @@ export async function POST(request: Request) {
           { session },
         );
         await c.teams.insertOne(team, { session });
+        await c.files.insertOne(deck, { session });
         await c.audit.insertOne(
           {
             actorId: userId,
             teamId,
             action: "registration_submitted",
-            after: "new",
+            after: "pending",
             createdAt: now,
           },
           { session },

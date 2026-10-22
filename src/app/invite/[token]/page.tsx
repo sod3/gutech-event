@@ -33,8 +33,8 @@ export default async function Page({
         </h1>
         <Status status={registrationStatus(team)} />
         <p style={{ marginTop: 23 }}>
-          Your team leader has shared this BuildFest 2026 invitation with you.
-          Connect with them for your team’s registered lineup and project plans.
+          Your team leader has shared this LEAP 3 invitation with you. Connect
+          with them for your team’s registered lineup and project plans.
         </p>
         <p style={{ marginTop: 15 }}>
           This private invitation shows your team’s name and registration

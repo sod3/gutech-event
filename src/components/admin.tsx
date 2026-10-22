@@ -42,7 +42,6 @@ import {
   type PublicEvent,
   type SafeTeam,
 } from "@/lib/types";
-
 type AdminTeam = SafeTeam & { internalNotes: string; whatsappConsent: boolean };
 type AdminData = {
   teams: AdminTeam[];
@@ -74,7 +73,6 @@ const localDate = (iso: string) =>
     : "";
 const utcDate = (local: string) =>
   local ? new Date(local + ":00+05:00").toISOString() : "";
-
 export function Admin({ name, event }: { name: string; event: PublicEvent }) {
   const [tab, setTab] = useState("overview");
   const [data, setData] = useState<AdminData | null>(null);
@@ -171,13 +169,13 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
     }
   };
   const teams = data?.teams || [];
-  const pending = teams.filter((t) => t.registrationStatus === "new");
-  const confirmed = teams.filter((t) => t.registrationStatus === "confirmed");
+  const pending = teams.filter((t) => t.registrationStatus === "pending");
+  const confirmed = teams.filter((t) => t.registrationStatus === "shortlisted");
   const final = confirmed.filter((t) => t.submission.final);
   const visible = teams.filter(
     (t) =>
       (filter === "all" || t.registrationStatus === filter) &&
-      `${t.name} ${t.registrationId} ${t.members.map((m) => `${m.name} ${m.email}`).join(" ")} ${t.whatsapp} ${t.institution || ""} ${t.department} ${t.internalNotes}`
+      `${t.name} ${t.registrationId} ${t.members.map((m) => `${m.name} ${m.email}`).join(" ")} ${t.whatsapp} ${t.institution || ""} ${t.startupStage || ""} ${t.startupDescription || ""} ${t.department} ${t.internalNotes}`
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -223,18 +221,35 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           <dd>{team.whatsapp}</dd>
         </div>
         <div>
-          <dt>UNIVERSITY / COLLEGE</dt>
+          <dt>UNIVERSITY / ORGANIZATION</dt>
           <dd>{team.institution || "Not recorded"}</dd>
         </div>
         <div>
-          <dt>DEPARTMENT</dt>
-          <dd>{team.department}</dd>
+          <dt>STARTUP STAGE</dt>
+          <dd>{team.startupStage || "Not recorded (legacy)"}</dd>
         </div>
         <div>
           <dt>TOTAL MEMBERS</dt>
           <dd>{team.members.length}</dd>
         </div>
       </dl>
+      <div className="startup-review-summary">
+        <h3>Startup description</h3>
+        <p style={{ whiteSpace: "pre-wrap" }}>
+          {team.startupDescription ||
+            team.submission.solution ||
+            "No description saved for this existing registration."}
+        </p>
+        {(team.applicationDeckFileId || team.submission.deckFileId) && (
+          <a
+            className="button button-secondary button-small"
+            href={`/api/files/${team.applicationDeckFileId || team.submission.deckFileId}`}
+          >
+            <Download size={14} />
+            Download application pitch deck
+          </a>
+        )}
+      </div>
       {contactButton(team)}
       <p className="payment-help">
         WhatsApp contact consent:{" "}
@@ -244,7 +259,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
         .
       </p>
       <div className="field registration-review-field">
-        <label htmlFor={`status-${team.id}`}>Registration status</label>
+        <label htmlFor={`status-${team.id}`}>Application status</label>
         <select
           id={`status-${team.id}`}
           value={statuses[team.id] ?? team.registrationStatus}
@@ -328,7 +343,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           }
         }}
       >
-        Save registration <Check size={14} />
+        Save review <Check size={14} />
       </LoadingButton>
       {reviewBaselines[team.id] && (
         <button
@@ -372,7 +387,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
-          <option value="all">All registrations</option>
+          <option value="all">All applications</option>
           {REGISTRATION_STATUSES.map((status) => (
             <option value={status} key={status}>
               {REGISTRATION_LABELS[status]}
@@ -389,12 +404,12 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                   <th>TEAM</th>
                   <th>TEAM LEADER</th>
                   <th>WHATSAPP</th>
-                  <th>UNIVERSITY / COLLEGE</th>
-                  <th>DEPARTMENT</th>
+                  <th>UNIVERSITY / ORGANIZATION</th>
+                  <th>STARTUP STAGE</th>
                   <th>SIZE</th>
                   <th>REGISTERED</th>
                   <th>STATUS</th>
-                  <th>PROJECT</th>
+                  <th>PITCH DECK</th>
                   <th />
                 </tr>
               </thead>
@@ -411,14 +426,23 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                     </td>
                     <td>{t.whatsapp}</td>
                     <td>{t.institution || "Not recorded"}</td>
-                    <td>{t.department}</td>
+                    <td>{t.startupStage || "Legacy application"}</td>
                     <td>{t.members.length}</td>
                     <td>{formatDate(t.createdAt)}</td>
                     <td>
                       <Status status={t.registrationStatus} />
                     </td>
                     <td>
-                      <Status status={t.submission.final ? "final" : "draft"} />
+                      {t.applicationDeckFileId || t.submission.deckFileId ? (
+                        <a
+                          className="text-link"
+                          href={`/api/files/${t.applicationDeckFileId || t.submission.deckFileId}`}
+                        >
+                          PDF <Download size={13} />
+                        </a>
+                      ) : (
+                        "Not uploaded"
+                      )}
                     </td>
                     <td>
                       {contactButton(t)}
@@ -514,7 +538,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               }[tab]
             }
           </h1>
-          <p>GUtech Entrepreneurship Society · BuildFest 2026</p>
+          <p>GUtech Entrepreneurship Society · LEAP 3</p>
         </div>
         <div style={{ display: "flex", gap: 9 }}>
           <button
@@ -548,7 +572,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           <div className="stats-grid">
             <div className="stat-card">
               <div>
-                <span>REGISTERED TEAMS</span>
+                <span>STARTUP APPLICATIONS</span>
                 <Users size={17} />
               </div>
               <strong>{teams.length}</strong>
@@ -559,35 +583,32 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
             </div>
             <div className="stat-card">
               <div>
-                <span>CONFIRMED TEAMS</span>
+                <span>SHORTLISTED STARTUPS</span>
                 <UserCheck size={17} />
               </div>
               <strong>{confirmed.length}</strong>
-              <small>Manually confirmed by organizers</small>
+              <small>Invited to pitch by organizers</small>
             </div>
             <div className="stat-card">
               <div>
-                <span>AWAITING CONTACT</span>
+                <span>PENDING REVIEW</span>
                 <Clock3 size={17} />
               </div>
               <strong>{pending.length}</strong>
-              <small>New team registrations</small>
+              <small>Startup applications awaiting review</small>
             </div>
             <div className="stat-card">
               <div>
-                <span>CONTACTED TEAMS</span>
+                <span>REJECTED APPLICATIONS</span>
                 <MessageCircle size={17} />
               </div>
               <strong>
                 {
-                  teams.filter(
-                    (t) =>
-                      t.registrationStatus === "contacted" ||
-                      t.registrationStatus === "awaiting_confirmation",
-                  ).length
+                  teams.filter((t) => t.registrationStatus === "rejected")
+                    .length
                 }
               </strong>
-              <small>Organizer follow-up in progress</small>
+              <small>Reviewed by organizers</small>
             </div>
           </div>
           <div className="welcome-card" style={{ marginBottom: 24 }}>
@@ -600,7 +621,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               </h2>
               <p>
                 {settings?.registrationOpen
-                  ? "Registration closes automatically at the official deadline. Contact new teams on WhatsApp and keep registration statuses up to date."
+                  ? "Registration closes automatically at the official deadline. Review startup descriptions and PDFs, then shortlist teams to pitch."
                   : "Set official dates and organizer support details. Then enable registration in Event configuration."}
               </p>
               <button
@@ -704,16 +725,16 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               )}
               {configField(
                 "submissionDeadline",
-                "Project submission deadline",
+                "Optional pitch update deadline",
                 "datetime-local",
               )}
               <h3 style={{ marginTop: 25 }}>Timeline phase dates · optional</h3>
               {[
-                "Register your team",
-                "Discover a problem",
-                "Build your solution",
-                "Pitch your innovation",
-                "Win & get recognized",
+                "Submit your startup",
+                "Application review",
+                "Shortlisting",
+                "Pitch at LEAP 3",
+                "Opportunities & follow-up",
               ].map((label, i) => (
                 <div className="field" key={i}>
                   <label htmlFor={`phase-${i}`}>
@@ -736,24 +757,14 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
               ))}
             </div>
             <div className="workspace-card">
-              <h2>Official support & policy</h2>
+              <h2>Official support</h2>
               <p>
-                These details help students reach the organizing team. Payment
-                instructions are shared directly on WhatsApp.
+                These details help applicants reach the organizing team.
+                Applications are completely free.
               </p>
               {configField("supportEmail", "Official support email", "email")}
               {configField("supportWhatsApp", "Official WhatsApp number")}
-              <div className="field">
-                <label htmlFor="refund-policy">Official refund policy</label>
-                <textarea
-                  id="refund-policy"
-                  value={settings.refundPolicy}
-                  maxLength={4000}
-                  placeholder="Enter the organizer-approved refund terms."
-                  onChange={(e) => set("refundPolicy", e.target.value)}
-                />
-              </div>
-              <h3 style={{ marginTop: 27 }}>Official partner logos</h3>
+              <h3 style={{ marginTop: 27 }}>Official organizer logo</h3>
               <p
                 style={{
                   fontSize: 12,
@@ -765,10 +776,10 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 MongoDB. Text attribution is used until official logos are
                 supplied.
               </p>
-              {["organizerLogoId", "partnerLogoId"].map((key, i) => (
+              {["organizerLogoId"].map((key, i) => (
                 <div className="field" key={key}>
                   <label htmlFor={`logo-${i}`}>
-                    {i === 0 ? "GUtech Entrepreneurship Society" : "ArtDera"}
+                    GUtech Entrepreneurship Society
                   </label>
                   <input
                     id={`logo-${i}`}
@@ -1165,7 +1176,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
           <div className="workspace-card">
             <div className="card-header">
               <h2>Projects & judge assignments</h2>
-              <span>{confirmed.length} CONFIRMED TEAMS</span>
+              <span>{confirmed.length} SHORTLISTED STARTUPS</span>
             </div>
             {confirmed.length ? (
               confirmed.map((t) => (

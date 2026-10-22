@@ -2,45 +2,41 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import { ScrollReset } from "@/components/scroll-reset";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 const display = Syne({ variable: "--font-display", subsets: ["latin"] });
-
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
   title: {
-    default: "BuildFest 2026 — The next big idea could be yours.",
-    template: "%s · BuildFest 2026",
+    default: "LEAP 3 — Pitch Your Startup. Unlock Opportunities.",
+    template: "%s · LEAP 3",
   },
   description:
-    "One Idea. Three Minds. Endless Possibilities. Build with AI, solve real problems, and pitch your innovation at GUtech’s BuildFest 2026. PKR 1,500 per team.",
+    "GUtech University’s Official Startup Pitching Event, organized by the Entrepreneurship Society. Free applications for ideas, prototypes, MVPs, and growing businesses.",
   openGraph: {
-    title: "BuildFest 2026 — Build what’s next.",
+    title: "LEAP 3 — Pitch Your Startup. Unlock Opportunities.",
     description:
-      "GUtech’s innovation challenge. 1–3 members. AI encouraged. One idea can change everything.",
+      "Apply with your startup idea and PDF pitch deck. No working product required. Only shortlisted startups pitch at LEAP 3.",
     type: "website",
     locale: "en_PK",
     images: ["/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "BuildFest 2026",
-    description: "The next big idea could be yours.",
+    title: "LEAP 3",
+    description: "Pitch Your Startup. Unlock Opportunities.",
   },
   robots: { index: true, follow: true },
   verification: {
     google: "ksPme2yJzX9I1yhuyQYrwfQnBEAiKoCqh976CaL08WA",
   },
 };
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html

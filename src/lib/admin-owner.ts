@@ -2,7 +2,6 @@ import "server-only";
 import { ObjectId } from "mongodb";
 import { collections } from "./db";
 import type { UserDoc } from "./types";
-
 export function configuredAdminOwner() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const storedHash = process.env.ADMIN_PASSWORD_HASH?.trim();
@@ -21,7 +20,6 @@ export function configuredAdminOwner() {
     throw new Error("ADMIN_OWNER_CONFIGURATION_INVALID");
   return { email, passwordHash };
 }
-
 export function adminOwnerAllowed(user: UserDoc) {
   if (user.role !== "admin") return true;
   const owner = configuredAdminOwner();
@@ -30,7 +28,6 @@ export function adminOwnerAllowed(user: UserDoc) {
     (user.email === owner.email && user.passwordHash === owner.passwordHash)
   );
 }
-
 // Only a successful comparison against the server's owner secret calls this.
 // Existing participant/judge accounts are never promoted to admin automatically.
 export async function provisionAdminOwner(
@@ -60,7 +57,7 @@ export async function provisionAdminOwner(
         : {
             _id: new ObjectId(),
             email: owner.email,
-            name: "BuildFest Organizer",
+            name: "LEAP 3 Organizer",
             passwordHash: owner.passwordHash,
             role: "admin",
             disabled: false,

@@ -65,26 +65,26 @@ export async function POST(request: Request) {
       leaderId: user._id,
     });
     const settings = await getSettings();
-    if (!team || registrationStatus(team) !== "confirmed")
+    if (!team || registrationStatus(team) !== "shortlisted")
       throw new HttpError(
         403,
-        "Organizer confirmation is required for project uploads.",
+        "Shortlisting is required before updating your pitch deck.",
       );
     if (
       !settings.submissionDeadline ||
       new Date(settings.submissionDeadline).getTime() <= Date.now()
     )
-      throw new HttpError(409, "Project uploads are currently closed.");
+      throw new HttpError(409, "Pitch deck updates are currently closed.");
     const file = await prepareFile(upload, "deck", team._id);
     const session = c.client.startSession();
     try {
       await session.withTransaction(async () => {
         await lockOpenEvent(session, true);
         const latest = await c.teams.findOne({ _id: team._id }, { session });
-        if (!latest || registrationStatus(latest) !== "confirmed")
+        if (!latest || registrationStatus(latest) !== "shortlisted")
           throw new HttpError(
             403,
-            "Organizer confirmation is required for project uploads.",
+            "Shortlisting is required before updating your pitch deck.",
           );
         await c.files.insertOne(file, { session });
         await c.teams.updateOne(

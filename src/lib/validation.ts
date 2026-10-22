@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { normalizeWhatsApp } from "./registration";
-
+import { normalizeWhatsApp, STARTUP_STAGES } from "./registration";
 const clean = (max: number) => z.string().trim().max(max);
 export const emailSchema = z
   .string()
@@ -27,19 +26,24 @@ export const whatsappSchema = clean(24)
   )
   .transform((value) => `+${normalizeWhatsApp(value)}`);
 export const teamDetailsSchema = z.object({
-  teamName: clean(80).min(2, "Give your team a name."),
+  startupName: clean(80).min(2, "Enter your startup name."),
+  startupStage: z.enum(STARTUP_STAGES),
+  startupDescription: clean(5000).min(
+    30,
+    "Describe your idea, problem, solution, and target customers (at least 30 characters).",
+  ),
   leaderName: clean(100).min(2, "Enter your full name."),
   email: emailSchema,
   password: passwordSchema,
   whatsapp: whatsappSchema,
-  institution: clean(160).min(2, "Enter your university or college."),
-  department: clean(100).min(2, "Enter your department or program."),
-  teamSize: z.number().int().min(1).max(3),
+  institution: clean(160).min(2, "Enter your university or organization."),
+  department: clean(100).optional().default(""),
+  teamSize: z.number().int().min(1),
 });
 export const registrationSchema = z
   .object({
     ...teamDetailsSchema.shape,
-    members: z.array(member).max(2),
+    members: z.array(member),
     requestId: z.string().uuid(),
     whatsappConsent: z.literal(true, {
       error: "Please consent to WhatsApp contact from the organizers.",
@@ -93,12 +97,6 @@ export const submissionSchema = z
             path: [key],
             message: `Complete your ${key} before final submission.`,
           });
-      if (!v.aiDeclaration)
-        ctx.addIssue({
-          code: "custom",
-          path: ["aiDeclaration"],
-          message: "Confirm your AI assistance declaration.",
-        });
     }
   });
 const date = z.union([z.literal(""), z.string().datetime({ offset: true })]);

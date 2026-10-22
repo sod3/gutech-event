@@ -38,10 +38,9 @@ const link = new URL(
 );
 assert.equal(link.origin, "https://wa.me");
 assert.equal(link.pathname, "/923001234567");
-assert.equal(
-  link.searchParams.get("text"),
-  "Assalamualaikum Test Leader,\n\nThank you for registering Team A & B for BuildFest 2026 at GUtech University!\n\nWe are pleased to receive your registration. The registration fee is PKR 1,500 per team.\n\nWe will share the next steps and payment details with you.\n\nRegards,\nBuildFest 2026 Organizing Team\nGUtech Entrepreneurship Society",
-);
+assert.match(link.searchParams.get("text")!, /LEAP 3/);
+assert.match(link.searchParams.get("text")!, /completely free/);
+assert.doesNotMatch(link.searchParams.get("text")!, /1,500|payment/i);
 assert.equal(
   whatsappContactUrl({
     name: "Legacy",
@@ -54,17 +53,20 @@ assert.equal(
   registrationStatus({ payment: { status: "confirmed" } } as Parameters<
     typeof registrationStatus
   >[0]),
-  "confirmed",
+  "shortlisted",
 );
 assert.equal(
   registrationStatus({
     registrationStatus: "contacted",
     payment: { status: "confirmed" },
   } as Parameters<typeof registrationStatus>[0]),
-  "contacted",
+  "pending",
 );
 const valid = {
-  teamName: "A Team",
+  startupName: "A Startup",
+  startupStage: "Idea Only",
+  startupDescription:
+    "We help students discover useful internships through a curated matching service for local organizations.",
   leaderName: "Test Leader",
   email: "LEADER@EXAMPLE.COM",
   password: "safe-test-password",
@@ -77,6 +79,15 @@ const valid = {
   whatsappConsent: true,
   agreement: true,
 };
+const largeTeam = {
+  ...valid,
+  teamSize: 21,
+  members: Array.from({ length: 20 }, (_, i) => ({
+    name: `Member ${i}`,
+    email: `member${i}@example.com`,
+  })),
+};
+assert.equal(registrationSchema.safeParse(largeTeam).success, true);
 const saved = registrationSchema.parse(valid);
 assert.equal(saved.whatsapp, "+923001234567");
 assert.equal(saved.email, "leader@example.com");
@@ -84,7 +95,9 @@ assert.equal(saved.institution, "Test University");
 assert.equal("reference" in saved, false);
 for (const invalid of [
   { teamSize: 0 },
-  { teamSize: 4 },
+  { startupStage: "Invalid" },
+  { startupName: "" },
+  { startupDescription: "Too short" },
   { whatsappConsent: false },
   { email: "bad" },
   { password: "short" },
@@ -133,5 +146,5 @@ assert.match(
   /30.*Oct.*2026.*11:59.*pm.*PKT/i,
 );
 console.log(
-  "PASS registration validation with required university/college, legacy statuses, international WhatsApp formats, exact prefilled message, and 30 October deadline boundaries in Pakistan time.",
+  "PASS startup fields, idea-only eligibility, 21-member teams, legacy status mapping, WhatsApp formats and deadline boundaries.",
 );

@@ -4,7 +4,6 @@ import { collections } from "./db";
 import type { TeamDoc } from "./types";
 import type { ClientSession } from "mongodb";
 import { hash } from "./security";
-
 export function mailConfigured() {
   return !!(
     process.env.SMTP_HOST &&
@@ -50,7 +49,7 @@ export async function sendPendingMail(retryFailed = false) {
         to: item.to,
         subject: item.subject,
         text: item.text,
-        messageId: `<${hash(item.key)}@buildfest.local>`,
+        messageId: `<${hash(item.key)}@leap3.local>`,
       });
       await c.mail.updateOne(
         { _id: item._id },
@@ -84,8 +83,8 @@ export async function queueConfirmation(
         $setOnInsert: {
           key,
           to: member.email,
-          subject: `You're in! BuildFest 2026 · ${team.registrationId}`,
-          text: `WELCOME TO THE FUTURE, INNOVATOR!\n\nYour team ${team.name} has been confirmed by the BuildFest 2026 organizers.\nRegistration ID: ${team.registrationId}\n\nYour team leader can access the dashboard at ${process.env.APP_URL || "the official BuildFest website"}/dashboard.\n\nOne Idea. Three Minds. Endless Possibilities.`,
+          subject: `Your startup is shortlisted · LEAP 3 · ${team.registrationId}`,
+          text: `WELCOME TO THE FUTURE, INNOVATOR!\n\nYour team ${team.name} has been shortlisted to pitch at LEAP 3, GUtech University’s Official Startup Pitching Event.\nRegistration ID: ${team.registrationId}\n\nYour team leader can access the dashboard at ${process.env.APP_URL || "the official LEAP 3 website"}/dashboard.\n\nPitch Your Startup. Unlock Opportunities. Registration is completely free.`,
           status: mailConfigured() ? "queued" : "unconfigured",
           createdAt: new Date(),
         },

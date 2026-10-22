@@ -31,9 +31,9 @@ export function Ticket({
           <Sparkles size={26} style={{ display: "inline" }} />
         </h1>
         <p>
-          Your team is officially part of BuildFest 2026.
+          Your startup is shortlisted to pitch at LEAP 3.
           <br />
-          One Idea. Three Minds. Endless Possibilities.
+          Pitch Your Startup. Unlock Opportunities.
         </p>
         <div className="ticket-id">
           <small>YOUR UNIQUE REGISTRATION ID</small>
@@ -50,14 +50,12 @@ export function Ticket({
             LOCATION<strong>GUtech University, Pakistan</strong>
           </span>
           <span>
-            REGISTRATION STATUS<strong>Confirmed by organizers</strong>
+            REGISTRATION STATUS<strong>Shortlisted by organizers</strong>
           </span>
         </div>
         <p>Event date: {formatDate(event.eventDate, true)}</p>
         <p style={{ fontSize: 12 }}>
           Organized by GUtech Entrepreneurship Society
-          <br />
-          Powered by ArtDera
         </p>
         <div className="ticket-actions">
           <button

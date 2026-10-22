@@ -49,15 +49,15 @@ export async function PATCH(request: Request) {
     if (!team) throw new HttpError(404, "Team not found.");
     if (input.submission) {
       const submission = input.submission;
-      if (registrationStatus(team) !== "confirmed")
+      if (registrationStatus(team) !== "shortlisted")
         throw new HttpError(
           403,
-          "Your registration must be confirmed by an organizer before you can submit a project.",
+          "Your startup must be shortlisted before you can update pitch details.",
         );
       if (!settings.submissionDeadline)
         throw new HttpError(
           409,
-          "Project submissions open after the official deadline is announced.",
+          "Optional pitch updates open when organizers announce an update deadline.",
         );
       if (new Date(settings.submissionDeadline).getTime() <= Date.now())
         throw new HttpError(
@@ -69,10 +69,10 @@ export async function PATCH(request: Request) {
         await session.withTransaction(async () => {
           await lockOpenEvent(session, true);
           const latest = await c.teams.findOne({ _id: team._id }, { session });
-          if (!latest || registrationStatus(latest) !== "confirmed")
+          if (!latest || registrationStatus(latest) !== "shortlisted")
             throw new HttpError(
               403,
-              "Your registration must be confirmed by an organizer before you can submit a project.",
+              "Your startup must be shortlisted before you can update pitch details.",
             );
           await c.teams.updateOne(
             { _id: team._id },

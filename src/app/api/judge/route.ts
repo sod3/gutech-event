@@ -34,6 +34,8 @@ export async function GET() {
         name: t.name,
         registrationId: t.registrationId,
         submission: t.submission,
+        startupStage: t.startupStage,
+        startupDescription: t.startupDescription,
       })),
       scores: scores.map((s) => ({
         teamId: s.teamId.toString(),

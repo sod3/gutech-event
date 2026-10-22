@@ -17,16 +17,18 @@ export async function GET() {
     const rows = [
       [
         "Registration ID",
-        "Team",
+        "Startup",
+        "Startup stage",
+        "Startup description",
+        "Application pitch deck",
         "Leader",
         "Email",
         "WhatsApp",
-        "University / College",
+        "University / Organization",
         "Department",
         "Size",
         "Members",
         "Registration status",
-        "Amount PKR",
         "Internal notes",
         "WhatsApp contact consent",
         "Project",
@@ -36,6 +38,9 @@ export async function GET() {
       ...teams.map((t) => [
         t.registrationId,
         t.name,
+        t.startupStage || "",
+        t.startupDescription || "",
+        t.applicationDeckFileId || t.submission.deckFileId || "",
         t.members[0].name,
         t.members[0].email,
         t.whatsapp,
@@ -44,7 +49,6 @@ export async function GET() {
         t.members.length,
         t.members.map((m) => `${m.name} <${m.email}>`).join("; "),
         REGISTRATION_LABELS[registrationStatus(t)],
-        t.payment.amount,
         t.internalNotes || "",
         t.whatsappConsent ? "Yes" : "Not recorded (legacy registration)",
         t.submission.title,
@@ -57,8 +61,7 @@ export async function GET() {
       {
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition":
-            "attachment; filename=buildfest-registrations.csv",
+          "Content-Disposition": "attachment; filename=leap3-applications.csv",
           "Cache-Control": "private, no-store",
         },
       },

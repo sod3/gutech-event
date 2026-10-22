@@ -2,31 +2,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  ArrowRight,
   ArrowUpRight,
   Bell,
   BookOpen,
-  BrainCircuit,
   CheckCircle2,
-  ClipboardList,
-  Clock3,
-  Copy,
   Download,
-  ExternalLink,
   FileText,
   LayoutDashboard,
   Lightbulb,
-  Link2,
-  MessageCircle,
-  Rocket,
-  ShieldCheck,
   Users,
 } from "lucide-react";
 import { ORGANIZER_FOLLOW_UP } from "@/lib/registration";
 import { type PublicEvent, type SafeTeam, type Submission } from "@/lib/types";
 import {
   api,
-  Countdown,
   EmptyState,
   FormMessage,
   LoadingButton,
@@ -34,7 +23,6 @@ import {
   formatDate,
 } from "./ui";
 import { Workspace } from "./workspace";
-
 export function Participant({
   initialTeam,
   event,
@@ -42,652 +30,432 @@ export function Participant({
   initialTeam: SafeTeam;
   event: PublicEvent;
 }) {
-  const [team, setTeam] = useState(initialTeam);
-  const [tab, setTab] = useState("overview");
-  const [submission, setSubmission] = useState<Submission>(
-    initialTeam.submission,
-  );
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [invite, setInvite] = useState("");
-  const [now, setNow] = useState<number | null>(null);
-  const confirmed = team.registrationStatus === "confirmed";
-  const submissionOpen =
-    confirmed &&
+  const [team, setTeam] = useState(initialTeam),
+    [tab, setTab] = useState("overview"),
+    [submission, setSubmission] = useState<Submission>(initialTeam.submission),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [message, setMessage] = useState("");
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    const initial = setTimeout(() => setNow(Date.now()), 0);
+    const refresh = async () => {
+      try {
+        const r = await api<{ team: SafeTeam }>("/api/team");
+        setTeam(r.team);
+      } catch {}
+    };
+    const refreshTimer = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 10000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(initial);
+      clearInterval(refreshTimer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+  const shortlisted = team.registrationStatus === "shortlisted";
+  const editable =
+    shortlisted &&
     !event.resultsPublished &&
     !!event.submissionDeadline &&
-    new Date(event.submissionDeadline).getTime() > (now ?? Infinity);
-  useEffect(() => {
-    const hydrationTimer = setTimeout(() => {
-      setInvite(`${window.location.origin}/invite/${initialTeam.inviteToken}`);
-      setNow(Date.now());
-    }, 0);
-    const clockTimer = setInterval(() => setNow(Date.now()), 30000);
-    return () => {
-      clearTimeout(hydrationTimer);
-      clearInterval(clockTimer);
-    };
-  }, [initialTeam.inviteToken]);
-  const changeTab = (s: string) => {
-    setTab(s);
-    setError("");
-    setMessage("");
-  };
-  const save = async (final: boolean) => {
+    new Date(event.submissionDeadline).getTime() > now &&
+    now > 0;
+  const save = async () => {
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      const result = await api<{ team: SafeTeam; message: string }>(
+      const r = await api<{ team: SafeTeam; message: string }>(
         "/api/team",
         "PATCH",
-        { submission: { ...submission, final } },
+        { submission: { ...submission, final: true } },
       );
-      setTeam(result.team);
-      setSubmission(result.team.submission);
-      setMessage(result.message);
+      setTeam(r.team);
+      setSubmission(r.team.submission);
+      setMessage(r.message);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Please try again.");
+      setError(e instanceof Error ? e.message : "Unable to save.");
     } finally {
       setBusy(false);
     }
   };
-  const checklist = async (key: string) => {
-    const next = team.checklist.includes(key)
-      ? team.checklist.filter((v) => v !== key)
-      : [...team.checklist, key];
-    try {
-      const result = await api<{ team: SafeTeam }>("/api/team", "PATCH", {
-        checklist: next,
-      });
-      setTeam(result.team);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Please try again.");
-    }
-  };
-  const uploadDeck = async (file: File) => {
+  const upload = async (file: File) => {
     setBusy(true);
     setError("");
     try {
       const body = new FormData();
-      body.append("file", file);
-      body.append("purpose", "deck");
-      const result = await api<{ fileId: string; message: string }>(
+      body.set("file", file);
+      body.set("purpose", "deck");
+      const r = await api<{ fileId: string; message: string }>(
         "/api/files",
         "POST",
         body,
       );
-      setSubmission((prev) => ({ ...prev, deckFileId: result.fileId }));
-      setTeam((prev) => ({
-        ...prev,
-        submission: { ...prev.submission, deckFileId: result.fileId },
-      }));
-      setMessage(result.message);
+      setSubmission((p) => ({ ...p, deckFileId: r.fileId }));
+      setMessage(r.message);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.");
+      setError(e instanceof Error ? e.message : "Unable to upload.");
     } finally {
       setBusy(false);
     }
   };
-  const field = (
-    key: keyof Submission,
-    label: string,
-    hint: string,
-    multiline = false,
-  ) => (
-    <div className={`field ${multiline ? "field-full" : ""}`}>
-      <label htmlFor={`submission-${key}`}>{label}</label>
-      {multiline ? (
-        <textarea
-          id={`submission-${key}`}
-          value={String(submission[key] || "")}
-          onChange={(e) =>
-            setSubmission((prev) => ({ ...prev, [key]: e.target.value }))
-          }
-          placeholder={hint}
-          disabled={!submissionOpen}
-          maxLength={key === "solution" ? 5000 : 4000}
-        />
-      ) : (
-        <input
-          id={`submission-${key}`}
-          value={String(submission[key] || "")}
-          onChange={(e) =>
-            setSubmission((prev) => ({ ...prev, [key]: e.target.value }))
-          }
-          placeholder={hint}
-          disabled={!submissionOpen}
-          type={key.endsWith("Url") ? "url" : "text"}
-          maxLength={key === "title" ? 120 : 500}
-        />
-      )}
-    </div>
-  );
   return (
     <Workspace
-      title="PARTICIPANT WORKSPACE"
+      title="STARTUP WORKSPACE"
       name={team.members[0].name}
       tabs={[
         { id: "overview", title: "Overview", icon: LayoutDashboard },
-        { id: "project", title: "Your project", icon: Lightbulb },
-        { id: "team", title: "Team & registration", icon: Users },
-        { id: "resources", title: "Builder’s toolkit", icon: BookOpen },
+        { id: "application", title: "Your application", icon: Lightbulb },
+        { id: "team", title: "Your team", icon: Users },
+        { id: "pitch", title: "Pitch details", icon: FileText },
+        { id: "resources", title: "Pitch preparation", icon: BookOpen },
       ]}
       active={tab}
-      onTab={changeTab}
+      onTab={(s) => {
+        setTab(s);
+        setError("");
+        setMessage("");
+      }}
     >
       <div className="workspace-heading">
         <div>
           <h1>
             {
               {
-                overview: `Let’s build, ${team.members[0].name.split(" ")[0]}.`,
-                project: "Your next big idea.",
-                team: "Good company. Big possibilities.",
-                resources: "A little help for the journey.",
+                overview: `Your next chapter, ${team.members[0].name.split(" ")[0]}.`,
+                application: "Your startup application.",
+                team: "The people behind the idea.",
+                pitch: "Your pitch, in your words.",
+                resources: "Make your idea heard.",
               }[tab]
             }
           </h1>
-          <p>
-            {team.name} <span style={{ margin: "0 5px" }}>·</span>{" "}
-            {team.registrationId}
-          </p>
+          <p>LEAP 3 · GUtech University’s Official Startup Pitching Event</p>
         </div>
         <Status status={team.registrationStatus} />
       </div>
+      <FormMessage error={error} message={message} />
       {tab === "overview" && (
         <>
           <div className="welcome-card">
             <div>
               <small>
-                {confirmed
-                  ? "WELCOME TO THE FUTURE, INNOVATOR!"
-                  : "YOUR TEAM DETAILS ARE SAVED"}
+                {shortlisted
+                  ? "YOU’RE INVITED TO PITCH"
+                  : team.registrationStatus === "rejected"
+                    ? "APPLICATION REVIEWED"
+                    : "APPLICATION SUBMITTED"}
               </small>
               <h2>
-                {confirmed
-                  ? "Your team is officially part of BuildFest 2026."
-                  : "One step closer to what’s next."}
+                {shortlisted
+                  ? "Your startup is shortlisted!"
+                  : team.registrationStatus === "rejected"
+                    ? "Thank you for sharing your vision."
+                    : "Your idea is in good hands."}
               </h2>
               <p>
-                {confirmed
-                  ? "Your registration is confirmed. Explore the toolkit, validate your problem, and start building your idea."
-                  : "Your team details are saved. Our organizing team will contact your team leader on WhatsApp with the next steps. You don’t need to register again."}
+                {shortlisted
+                  ? "Our organizers have selected your startup to pitch at LEAP 3. Watch for your invitation details from the Entrepreneurship Society."
+                  : team.registrationStatus === "rejected"
+                    ? "Your startup was not shortlisted for this edition. Your submitted application is preserved here for your reference."
+                    : "Your application has been submitted successfully. Our team will review your startup and contact you if shortlisted."}
               </p>
-              {confirmed && (
-                <Link
-                  href="/dashboard/confirmation"
-                  className="text-link"
-                  style={{ marginTop: 17, fontSize: 12 }}
-                >
-                  View registration confirmation <ArrowUpRight size={13} />
+              {shortlisted && (
+                <Link className="text-link" href="/dashboard/confirmation">
+                  View pitching confirmation <ArrowUpRight size={14} />
                 </Link>
               )}
             </div>
-            {confirmed ? <Rocket /> : <Clock3 />}
+            <Lightbulb />
           </div>
           <div className="dashboard-grid">
             <div className="workspace-card">
               <div className="card-header">
-                <h2>Your registration</h2>
-                <ShieldCheck size={16} />
+                <h2>Application at a glance</h2>
+                <FileText size={17} />
               </div>
               <dl className="payment-detail-list">
                 <div>
-                  <dt>STATUS</dt>
+                  <dt>STARTUP</dt>
+                  <dd>{team.name}</dd>
+                </div>
+                <div>
+                  <dt>STAGE</dt>
                   <dd>
-                    <Status status={team.registrationStatus} />
+                    {team.startupStage || "Not recorded (existing application)"}
                   </dd>
                 </div>
                 <div>
-                  <dt>TEAM FEE</dt>
-                  <dd>PKR {team.payment.amount.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>REGISTERED ON</dt>
-                  <dd>{formatDate(team.createdAt)}</dd>
-                </div>
-                <div>
-                  <dt>REGISTRATION ID</dt>
+                  <dt>APPLICATION ID</dt>
                   <dd>{team.registrationId}</dd>
                 </div>
                 <div>
-                  <dt>EVENT DATE</dt>
-                  <dd>{formatDate(event.eventDate, true)}</dd>
+                  <dt>REGISTRATION</dt>
+                  <dd>Completely FREE</dd>
                 </div>
-                {team.institution && (
-                  <div>
-                    <dt>UNIVERSITY / COLLEGE</dt>
-                    <dd>{team.institution}</dd>
-                  </div>
-                )}
                 <div>
-                  <dt>REGISTRATION CLOSES</dt>
-                  <dd>{formatDate(event.registrationDeadline)}</dd>
+                  <dt>SUBMITTED ON</dt>
+                  <dd>{formatDate(team.createdAt)}</dd>
                 </div>
               </dl>
-              <div className="payment-help">
-                {confirmed
-                  ? "Your registration has been confirmed by the organizer."
-                  : ORGANIZER_FOLLOW_UP}
-              </div>
-            </div>
-            <div className="workspace-card deadline-card">
-              <div className="card-header">
-                <h2>Next milestone</h2>
-                <Clock3 size={16} />
-              </div>
-              <p style={{ marginTop: 0 }}>PROJECT SUBMISSION DEADLINE</p>
-              <Countdown
-                deadline={event.submissionDeadline}
-                compact
-                purpose="submission"
-              />
-              <p>
-                {event.submissionDeadline
-                  ? formatDate(event.submissionDeadline)
-                  : "The official submission schedule is being finalized."}
-              </p>
-              <button
-                className="text-link"
-                style={{ marginTop: 18, fontSize: 12 }}
-                onClick={() => changeTab("project")}
-              >
-                Open your project <ArrowRight size={13} />
-              </button>
+              <p className="payment-help">{ORGANIZER_FOLLOW_UP}</p>
             </div>
             <div className="workspace-card">
               <div className="card-header">
-                <h2>Your building blocks</h2>
-                <ClipboardList size={16} />
-              </div>
-              <div className="progress-summary">
-                <span>A little progress goes a long way.</span>
-                <span>{team.checklist.length} / 4</span>
-              </div>
-              <div className="progress-track">
-                <span
-                  style={{ width: `${(team.checklist.length / 4) * 100}%` }}
-                />
+                <h2>From application to stage</h2>
+                <CheckCircle2 size={17} />
               </div>
               {[
-                ["problem", "Define a problem worth solving"],
-                ["research", "Validate it with research or interviews"],
-                ["prototype", "Build a prototype that shows your idea"],
-                ["pitch", "Prepare your pitch and final submission"],
-              ].map(([key, label]) => (
-                <label className="checklist-item" key={key}>
-                  <input
-                    type="checkbox"
-                    checked={team.checklist.includes(key)}
-                    onChange={() => checklist(key)}
-                  />
-                  <span>{label}</span>
-                </label>
+                "Submit Your Startup",
+                "Application Review",
+                "Shortlisting",
+                "Pitch at LEAP 3",
+              ].map((s, i) => (
+                <div className="team-member" key={s}>
+                  <span className="avatar">0{i + 1}</span>
+                  <h3>{s}</h3>
+                </div>
               ))}
+              <p className="payment-help">
+                A strong idea is eligible. No working product is required, and
+                there is no project-building period during the event.
+              </p>
             </div>
-            <div className="workspace-card">
+            <div className="workspace-card span-two">
               <div className="card-header">
-                <h2>From the organizers</h2>
-                <Bell size={16} />
+                <h2>Organizer announcements</h2>
+                <Bell size={17} />
               </div>
               {event.announcements.length ? (
-                event.announcements.slice(0, 4).map((a) => (
-                  <div className="announcement-item" key={a.id}>
+                event.announcements.map((a) => (
+                  <article key={a.id}>
                     <h3>{a.title}</h3>
-                    <small>{formatDate(a.date)}</small>
-                    <p>{a.message}</p>
-                  </div>
+                    <p className="payment-help">{a.message}</p>
+                  </article>
                 ))
               ) : (
-                <EmptyState icon={<Bell size={19} />} title="Watch this space.">
-                  Official event updates and announcements will appear here.
+                <EmptyState
+                  icon={<Bell size={18} />}
+                  title="Updates will appear here."
+                >
+                  Watch for news from the Entrepreneurship Society.
                 </EmptyState>
               )}
             </div>
           </div>
         </>
       )}
-      {tab === "project" && (
+      {tab === "application" && (
+        <div className="workspace-card leap-application-card">
+          <div className="card-header">
+            <h2>{team.name}</h2>
+            <Status status={team.registrationStatus} />
+          </div>
+          <h3>Startup stage</h3>
+          <p className="payment-help">
+            {team.startupStage || "Not recorded for this existing registration"}
+          </p>
+          <h3>Idea, problem, solution & target customers</h3>
+          <p className="leap-application-summary">
+            {team.startupDescription ||
+              team.submission.solution ||
+              "No startup description saved for this existing registration."}
+          </p>
+          {team.applicationDeckFileId || team.submission.deckFileId ? (
+            <a
+              className="button button-secondary"
+              href={`/api/files/${team.applicationDeckFileId || team.submission.deckFileId}`}
+            >
+              <Download size={16} />
+              Download application pitch deck
+            </a>
+          ) : (
+            <p className="payment-help">
+              This existing registration has no application deck. Contact the
+              organizers for guidance.
+            </p>
+          )}
+          <p className="payment-help">
+            Your original application and PDF are kept for organizer review.
+            Only shortlisted startups will be invited to pitch.
+          </p>
+        </div>
+      )}
+      {tab === "team" && (
+        <div className="workspace-card">
+          <div className="card-header">
+            <h2>{team.name}</h2>
+            <span>{team.members.length} MEMBERS</span>
+          </div>
+          {team.members.map((m, i) => (
+            <div className="team-member" key={m.email}>
+              <span className="avatar">{m.name[0]}</span>
+              <div>
+                <h3>{m.name}</h3>
+                <p>{m.email}</p>
+              </div>
+              <small>{i === 0 ? "TEAM LEADER" : "MEMBER"}</small>
+            </div>
+          ))}
+          <p className="payment-help">
+            Share your private invitation with teammates: {" "}
+            <Link className="text-link" href={`/invite/${team.inviteToken}`}>
+              View team invitation <ArrowUpRight size={13} />
+            </Link>
+          </p>
+          <dl className="payment-detail-list">
+            <div>
+              <dt>UNIVERSITY / ORGANIZATION</dt>
+              <dd>{team.institution || "Not recorded"}</dd>
+            </div>
+            <div>
+              <dt>LEADER WHATSAPP</dt>
+              <dd>{team.whatsapp}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
+      {tab === "pitch" && (
         <>
           <div className="notice">
-            <BrainCircuit size={18} />
+            <FileText size={18} />
             <span>
-              Your prototype is 5 points out of 100. Focus on the problem, the
-              impact, and the idea. Be clear about your AI assistance.
+              These optional details supplement your original application. A
+              prototype or MVP link is optional; idea-only startups are
+              eligible.
             </span>
           </div>
-          {!submissionOpen && (
-            <div className="notice notice-warning" style={{ marginTop: 15 }}>
-              <Clock3 size={18} />
-              <span>
-                {!confirmed
-                  ? "Project submissions unlock after an organizer confirms your registration."
-                  : !event.submissionDeadline
-                    ? "Project submissions will open when the official submission deadline is announced."
-                    : "The submission deadline has passed. Your last saved project is preserved."}
-              </span>
-            </div>
+          {!editable && (
+            <p className="payment-help">
+              {!shortlisted
+                ? "Pitch updates are available to shortlisted startups when organizers open an update window."
+                : "Pitch updates are currently closed. Your saved application and pitch deck are preserved."}
+            </p>
           )}
           <div className="workspace-card submission-form">
-            <div className="card-header">
-              <h2>The idea, in your words.</h2>
-              <Status status={team.submission.final ? "final" : "draft"} />
-            </div>
             <div className="form-grid">
+              {(
+                [
+                  { key: "title", label: "Startup / pitch title" },
+                  { key: "problem", label: "Problem & target customers" },
+                  { key: "solution", label: "Your solution" },
+                  { key: "research", label: "Research or traction · optional" },
+                  { key: "mvpUrl", label: "Prototype / MVP link · optional" },
+                  { key: "pitchUrl", label: "Presentation link · optional" },
+                ] as const
+              ).map((f) => (
+                <div
+                  className={`field ${["problem", "solution", "research"].includes(f.key) ? "field-full" : ""}`}
+                  key={f.key}
+                >
+                  <label htmlFor={`pitch-${f.key}`}>{f.label}</label>
+                  {["problem", "solution", "research"].includes(f.key) ? (
+                    <textarea
+                      id={`pitch-${f.key}`}
+                      value={submission[f.key]}
+                      maxLength={f.key === "solution" ? 5000 : 4000}
+                      disabled={!editable}
+                      onChange={(e) =>
+                        setSubmission((p) => ({
+                          ...p,
+                          [f.key]: e.target.value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    <input
+                      id={`pitch-${f.key}`}
+                      value={submission[f.key]}
+                      type={f.key.endsWith("Url") ? "url" : "text"}
+                      maxLength={f.key === "title" ? 120 : 500}
+                      disabled={!editable}
+                      onChange={(e) =>
+                        setSubmission((p) => ({
+                          ...p,
+                          [f.key]: e.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+              ))}
               <div className="field field-full">
-                <label htmlFor="project-title">Project / idea name</label>
-                <input
-                  id="project-title"
-                  value={submission.title}
-                  placeholder="Give your idea a name"
-                  maxLength={120}
-                  disabled={!submissionOpen}
-                  onChange={(e) =>
-                    setSubmission((prev) => ({
-                      ...prev,
-                      title: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              {field(
-                "problem",
-                "The problem statement",
-                "Who faces this problem? What happens today? Why does it matter?",
-                true,
-              )}
-              {field(
-                "solution",
-                "Your solution & what makes it unique",
-                "Explain your approach, how it works, and the difference it could make.",
-                true,
-              )}
-              {field(
-                "research",
-                "Research & problem validation",
-                "What did you learn from interviews, observations, or research? Include sources.",
-                true,
-              )}
-              {field(
-                "mvpUrl",
-                "MVP / prototype URL",
-                "https://your-prototype.com",
-              )}
-              {field(
-                "pitchUrl",
-                "Pitch deck / presentation URL",
-                "https://your-presentation-link.com",
-              )}
-              <div className="field field-full">
-                <label htmlFor="pitch-upload">
-                  Or upload your pitch deck <span>PDF · up to 3 MB</span>
+                <label htmlFor="updated-deck">
+                  Updated pitch deck · PDF, up to 3 MB
                 </label>
                 <input
-                  id="pitch-upload"
-                  className="file-input"
+                  id="updated-deck"
                   type="file"
-                  accept="application/pdf"
-                  disabled={!submissionOpen || busy}
+                  accept=".pdf,application/pdf"
+                  disabled={!editable || busy}
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadDeck(file);
+                    const f = e.target.files?.[0];
+                    if (f) void upload(f);
                   }}
                 />
                 {submission.deckFileId && (
                   <a
                     className="text-link"
-                    style={{ fontSize: 12 }}
                     href={`/api/files/${submission.deckFileId}`}
                   >
-                    Download saved pitch deck <Download size={12} />
+                    Download current deck <Download size={13} />
                   </a>
                 )}
               </div>
-              {field(
-                "aiTools",
-                "AI assistance declaration",
-                "List the AI tools you used, where you used them, and what you did yourself. Write “None” if you didn’t use AI.",
-                true,
-              )}
             </div>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={submission.aiDeclaration}
-                disabled={!submissionOpen}
-                onChange={(e) =>
-                  setSubmission((prev) => ({
-                    ...prev,
-                    aiDeclaration: e.target.checked,
-                  }))
-                }
-              />
-              <span>
-                I understand this product and have accurately declared AI
-                assistance, credited sources, and checked the information in my
-                submission.
-              </span>
-            </label>
-            <div className="submission-actions">
-              <span>
-                {submission.updatedAt
-                  ? `Last saved: ${formatDate(String(submission.updatedAt))}`
-                  : "Save a draft whenever you’re ready."}
-              </span>
-              <div>
-                <LoadingButton
-                  className="button button-secondary"
-                  busy={busy}
-                  disabled={!submissionOpen}
-                  onClick={() => save(false)}
-                >
-                  Save draft
-                </LoadingButton>
-                <LoadingButton
-                  busy={busy}
-                  disabled={!submissionOpen}
-                  onClick={() => save(true)}
-                >
-                  {team.submission.final
-                    ? "Update final submission"
-                    : "Final submission"}
-                  <CheckCircle2 size={14} />
-                </LoadingButton>
-              </div>
-            </div>
-            <p className="payment-help">
-              You can continue editing and updating your final submission until
-              the official deadline.
-            </p>
-          </div>
-        </>
-      )}
-      {tab === "team" && (
-        <>
-          <div className="dashboard-grid" style={{ marginTop: 0 }}>
-            <div className="workspace-card">
-              <div className="card-header">
-                <h2>{team.name}</h2>
-                <span>{team.members.length} / 3 MEMBERS</span>
-              </div>
-              {team.members.map((m, i) => (
-                <div className="team-member" key={m.email}>
-                  <span className="avatar">
-                    {m.name
-                      .split(" ")
-                      .slice(0, 2)
-                      .map((n) => n[0])
-                      .join("")}
-                  </span>
-                  <div>
-                    <h3>{m.name}</h3>
-                    <p>{m.email}</p>
-                  </div>
-                  <small>{i === 0 ? "LEADER" : "MEMBER"}</small>
-                </div>
-              ))}
+            <LoadingButton busy={busy} disabled={!editable} onClick={save}>
+              Save pitch details <CheckCircle2 size={14} />
+            </LoadingButton>
+            {event.submissionDeadline && (
               <p className="payment-help">
-                {team.department} · WhatsApp: {team.whatsapp}
+                Optional pitch updates close{" "}
+                {formatDate(event.submissionDeadline)}. Your original
+                application deck is preserved.
               </p>
-            </div>
-            <div className="workspace-card">
-              <div className="card-header">
-                <h2>Share the adventure.</h2>
-                <Link2 size={16} />
-              </div>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--foreground)",
-                  lineHeight: 1.9,
-                }}
-              >
-                Share your team’s private invitation link with your teammates.
-                This link shows only your team name and status.
-              </p>
-              <div className="link-box">
-                <input
-                  readOnly
-                  aria-label="Team invitation link"
-                  value={invite}
-                />
-                <button
-                  aria-label="Copy invitation link"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(invite);
-                      setMessage("Team invitation link copied.");
-                    } catch {
-                      setError("Copy the link from the field above.");
-                    }
-                  }}
-                >
-                  <Copy size={14} color="#91a7cb" />
-                </button>
-              </div>
-              <a
-                className="text-link"
-                style={{ fontSize: 12, marginTop: 18 }}
-                href={`https://wa.me/?text=${encodeURIComponent(`We’re building something at BuildFest 2026. Here’s our team ${team.name}: ${invite}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle size={14} />
-                Share on WhatsApp <ArrowUpRight size={12} />
-              </a>
-            </div>
-            <div className="workspace-card span-two">
-              <div className="card-header">
-                <h2>Registration details</h2>
-                <Status status={team.registrationStatus} />
-              </div>
-              <dl className="payment-detail-list">
-                <div>
-                  <dt>REGISTRATION ID</dt>
-                  <dd>{team.registrationId}</dd>
-                </div>
-                <div>
-                  <dt>TEAM FEE</dt>
-                  <dd>PKR 1,500 · entire team</dd>
-                </div>
-                <div>
-                  <dt>WHATSAPP CONTACT</dt>
-                  <dd>{team.whatsapp}</dd>
-                </div>
-                <div>
-                  <dt>REGISTERED ON</dt>
-                  <dd>{formatDate(team.createdAt)}</dd>
-                </div>
-              </dl>
-              {confirmed && (
-                <Link
-                  className="text-link"
-                  style={{ fontSize: 12, marginTop: 23 }}
-                  href="/dashboard/confirmation"
-                >
-                  View / print confirmation <Download size={13} />
-                </Link>
-              )}
-              <p className="payment-help">{ORGANIZER_FOLLOW_UP}</p>
-            </div>
+            )}
           </div>
         </>
       )}
       {tab === "resources" && (
-        <>
-          <div className="resources-grid">
-            {[
-              {
-                icon: BrainCircuit,
-                title: "Think with AI.",
-                text: "Use ChatGPT to explore ideas, ask better questions, and stress-test your solution. Verify claims with real sources and declare your assistance.",
-                link: "https://chatgpt.com",
-                cta: "Open ChatGPT",
-              },
-              {
-                icon: FileText,
-                title: "Make your idea visible.",
-                text: "Use Figma to map your product flow, sketch screens, and make a prototype that explains the experience.",
-                link: "https://www.figma.com",
-                cta: "Explore Figma",
-              },
-              {
-                icon: Rocket,
-                title: "Get to a working MVP.",
-                text: "Use v0 to explore an application prototype. Understand the generated code and check that your core features work.",
-                link: "https://v0.app",
-                cta: "Explore v0",
-              },
-              {
-                icon: Users,
-                title: "Talk to real people.",
-                text: "Interview people who experience your problem. Ask about their current behavior, what frustrates them, and how they solve it today. Record evidence, not assumptions.",
-                link: "",
-                cta: "",
-              },
-              {
-                icon: Lightbulb,
-                title: "Pitch with a clear story.",
-                text: "Start with the problem. Introduce your solution. Show what is unique, share validation, explain the opportunity, and demonstrate the prototype.",
-                link: "",
-                cta: "",
-              },
-              {
-                icon: ShieldCheck,
-                title: "Keep the ground rules close.",
-                text: "Review the team rules, deadlines, judging criteria, and AI declaration requirements before your final submission.",
-                link: "/rules",
-                cta: "Read event rules",
-              },
-            ].map((r) => (
-              <div className="resource-card" key={r.title}>
-                <r.icon size={24} />
-                <h3>{r.title}</h3>
-                <p>{r.text}</p>
-                {r.link && (
-                  <a
-                    className="text-link"
-                    href={r.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {r.cta}
-                    <ExternalLink size={12} />
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="payment-help">
-            Tools are optional and independent of the event. Check each
-            provider’s terms and fees. You can use other tools, code from
-            scratch, or build with no-code.
-          </p>
-        </>
+        <div className="resources-grid">
+          {[
+            {
+              title: "Start with the problem.",
+              text: "Explain who faces the problem, how they handle it today, and why a better solution matters.",
+            },
+            {
+              title: "Make the solution clear.",
+              text: "Show what your startup offers and what makes the approach valuable. A clear idea can be enough; a working product is optional.",
+            },
+            {
+              title: "Know your customers.",
+              text: "Describe your target customers, their needs, and how you plan to reach them. Share research or traction if available.",
+            },
+            {
+              title: "Tell your team’s story.",
+              text: "Introduce the people behind the startup and the next milestone you want to reach. Be honest about your current stage.",
+            },
+            {
+              title: "Prepare before the event.",
+              text: "Shortlisted teams present an existing startup idea, prototype, MVP, or business. There is no time allocated to build projects during LEAP 3.",
+            },
+            {
+              title: "Explore the opportunities.",
+              text: "Connect with internships, startup incubation, PhD professor mentorship, startup growth support, and networking opportunities.",
+            },
+          ].map((r) => (
+            <div className="resource-card" key={r.title}>
+              <Lightbulb size={22} />
+              <h3>{r.title}</h3>
+              <p>{r.text}</p>
+            </div>
+          ))}
+        </div>
       )}
-      <FormMessage error={error} message={message} />
     </Workspace>
   );
 }

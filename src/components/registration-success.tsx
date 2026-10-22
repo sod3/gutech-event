@@ -1,9 +1,8 @@
 "use client";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CheckCircle2, Download } from "lucide-react";
 import { Brand, Status } from "./ui";
 import type { SafeTeam } from "@/lib/types";
-
 export function RegistrationSuccess({ team }: { team: SafeTeam }) {
   return (
     <main className="page-background registration-success-page">
@@ -12,50 +11,51 @@ export function RegistrationSuccess({ team }: { team: SafeTeam }) {
         <div className="registration-success-icon">
           <CheckCircle2 size={36} strokeWidth={1.6} />
         </div>
-        <div className="ticket-label">REGISTRATION RECEIVED</div>
+        <div className="ticket-label">APPLICATION RECEIVED · LEAP 3</div>
         <h1>
-          You&apos;re One Step Closer to{" "}
-          <span className="gradient-text">
-            Building Something Extraordinary!
-          </span>{" "}
-          🚀
+          Your next leap
+          <br />
+          <span className="gradient-text">starts here.</span>
         </h1>
         <p>
-          Your team registration has been received successfully! Our organizing
-          team will contact your team leader on WhatsApp shortly with further
-          details.
+          Your application has been submitted successfully. Our team will review
+          your startup and contact you if shortlisted.
         </p>
         <div className="ticket-id">
-          <small>YOUR REGISTRATION ID</small>
+          <small>YOUR APPLICATION ID</small>
           <strong>{team.registrationId}</strong>
         </div>
         <h3>{team.name}</h3>
-        <div className="success-members">
-          {team.members.map((member, index) => (
-            <p key={member.email}>
-              {member.name}
-              <small>{index === 0 ? "Team leader" : "Team member"}</small>
-            </p>
-          ))}
-        </div>
+        <p>
+          {team.startupStage} · {team.members.length} team{" "}
+          {team.members.length === 1 ? "member" : "members"}
+        </p>
         <div className="success-status">
-          <small>STATUS</small>
-          {team.registrationStatus === "new" ? (
-            <span className="status status-new">
-              <span />
-              Awaiting Organizer Contact
-            </span>
-          ) : (
-            <Status status={team.registrationStatus} />
-          )}
+          <small>APPLICATION STATUS</small>
+          <Status status={team.registrationStatus} />
         </div>
+        {team.applicationDeckFileId && (
+          <a
+            className="text-link"
+            href={`/api/files/${team.applicationDeckFileId}`}
+          >
+            <Download size={14} />
+            Download submitted pitch deck
+          </a>
+        )}
+        <p style={{ fontSize: 11, marginTop: 20 }}>
+          Submit Your Startup → Application Review → Shortlisting → Pitch at
+          LEAP 3<br />
+          Only shortlisted startups will be invited to pitch. Registration is
+          completely free.
+        </p>
         <div className="ticket-actions">
-          <Link className="button button-primary" href="/">
+          <Link className="button button-secondary" href="/">
             <ArrowLeft size={14} />
-            Back to Homepage
+            Back to homepage
           </Link>
-          <Link className="button button-secondary" href="/dashboard">
-            Team dashboard
+          <Link className="button button-primary" href="/dashboard">
+            Application dashboard
             <ArrowUpRight size={14} />
           </Link>
         </div>

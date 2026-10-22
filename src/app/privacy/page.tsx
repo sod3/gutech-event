@@ -1,6 +1,6 @@
 import { Header, Footer, SectionLabel } from "@/components/ui";
 import { publicEvent } from "@/lib/event";
-export const metadata = { title: "Privacy & refunds" };
+export const metadata = { title: "Privacy policy" };
 export const dynamic = "force-dynamic";
 export default async function Page() {
   const event = await publicEvent();
@@ -8,7 +8,7 @@ export default async function Page() {
     <>
       <Header />
       <main id="top" className="container content-page">
-        <SectionLabel>TRUST IS PART OF THE BUILD</SectionLabel>
+        <SectionLabel>YOUR STARTUP. YOUR INFORMATION.</SectionLabel>
         <h1>
           Your information.
           <br />
@@ -16,53 +16,45 @@ export default async function Page() {
         </h1>
         <h2>What we collect</h2>
         <p>
-          We collect team and participant names, email addresses, the leader’s
-          WhatsApp number, university or college, department, team size, consent
-          to WhatsApp contact, and competition submissions. The leader’s password is stored as a
-          one-way hash.
+          We collect your startup name, stage, description, and PDF pitch deck;
+          team members’ names and emails; the leader’s WhatsApp number and
+          university or organization; and your consent to contact. The leader’s
+          password is stored as a one-way hash.
         </p>
         <h2>Why we use it</h2>
         <p>
-          Organizers use these details to manage registration, contact team
-          leaders through WhatsApp with fee instructions and event updates,
-          review submissions, and judge the competition. Confirmation emails are
-          sent to registered team members when the organizer’s email service is
-          configured.
+          The Entrepreneurship Society uses this information to review startup
+          applications, shortlist teams, contact leaders about selection and
+          event details, and organize pitching and judging at LEAP 3.
+          Registration is completely free.
         </p>
         <h2>Who can access it</h2>
         <p>
-          The team leader can access their own team. Authorized organizers can
-          access registrations and internal notes. Internal notes are visible
-          only to organizers. Assigned judges can access project submissions and
-          pitch decks; they do not receive personal contact information or
-          internal notes. Published results include team names, project titles,
-          rankings, and scores.
+          Team leaders can access their own application and files. Authorized
+          organizers can review applications, download pitch decks, and keep
+          private review notes. Assigned judges can access shortlisted startup
+          submissions and pitch decks, without participant contact details or
+          organizer notes. Published results may include startup names, pitch
+          titles, rankings, and scores.
         </p>
-        <h2>Files & your local draft</h2>
+        <h2>Private storage & local drafts</h2>
         <p>
-          Submitted registrations and uploaded pitch decks are stored privately
-          in MongoDB and require appropriate authorization to access. The
-          registration form saves a draft of team details in this browser’s
-          local storage, so you can continue later. Your password is excluded.
-          Use “Clear saved draft” on the form if you are using a shared device.
-          Signing in uses a secure, HTTP-only session cookie.
+          Applications and pitch decks are stored privately in the existing
+          MongoDB database. Files require an authorized account to download. The
+          form saves a draft of your details in this browser; passwords, consent
+          checkboxes, and PDF files are excluded. Use “Clear saved draft” on a
+          shared device. Sign-in uses a secure HTTP-only session cookie.
         </p>
-        <h2>Refund policy</h2>
-        <p style={{ whiteSpace: "pre-wrap" }}>
-          {event.refundPolicy ||
-            "Our organizing team will contact you on WhatsApp with further details, including registration fee payment instructions. Ask the organizer about refund terms before making a payment."}
-        </p>
-        <h2>Support, corrections & deletion requests</h2>
+        <h2>Contact, corrections & deletion requests</h2>
         <p>
           {event.supportEmail ? (
             <>
               Contact the organizer at{" "}
               <a href={`mailto:${event.supportEmail}`}>{event.supportEmail}</a>{" "}
-              for payment support, account access, corrections, or deletion
-              requests.
+              for account access, corrections, or deletion requests.
             </>
           ) : (
-            "Our organizing team will contact your team leader on WhatsApp after registration. Official support details will be published here."
+            "Official organizer support details will be published here by the Entrepreneurship Society."
           )}
         </p>
         {event.supportWhatsApp && (
@@ -75,12 +67,6 @@ export default async function Page() {
             </a>
           </p>
         )}
-        <h2>No hidden fees</h2>
-        <p>
-          The complete registration fee is PKR 1,500 per team. No payment is
-          collected by the registration form. Project submissions do not create
-          any additional website charges.
-        </p>
       </main>
       <Footer />
     </>

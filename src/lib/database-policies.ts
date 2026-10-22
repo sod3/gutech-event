@@ -1,6 +1,5 @@
 import "server-only";
 import type { Db } from "mongodb";
-
 // These rules provide a second validation boundary beneath the HTTP handlers.
 // Access itself is enforced by server-only credentials and the application DAL.
 export async function applyDatabasePolicies(db: Db) {
@@ -44,8 +43,30 @@ export async function applyDatabasePolicies(db: Db) {
         // Required by new registration validation; absent on existing teams.
         institution: { bsonType: "string", minLength: 2, maxLength: 160 },
         registrationStatus: {
-          enum: ["new", "contacted", "awaiting_confirmation", "confirmed"],
+          enum: [
+            "pending",
+            "shortlisted",
+            "rejected",
+            "new",
+            "contacted",
+            "awaiting_confirmation",
+            "confirmed",
+          ],
         },
+        startupStage: {
+          enum: [
+            "Idea Only",
+            "Prototype",
+            "MVP",
+            "Existing or Growing Business",
+          ],
+        },
+        startupDescription: {
+          bsonType: "string",
+          minLength: 30,
+          maxLength: 5000,
+        },
+        applicationDeckFileId: { bsonType: "string" },
         internalNotes: { bsonType: "string", maxLength: 4000 },
         whatsappConsent: { bsonType: "bool" },
         whatsappConsentAt: { bsonType: "date" },
@@ -53,7 +74,6 @@ export async function applyDatabasePolicies(db: Db) {
         members: {
           bsonType: "array",
           minItems: 1,
-          maxItems: 3,
           items: {
             bsonType: "object",
             required: ["name", "email"],
@@ -68,7 +88,7 @@ export async function applyDatabasePolicies(db: Db) {
           required: ["status", "amount"],
           properties: {
             status: { enum: ["pending", "confirmed", "rejected"] },
-            amount: { enum: [1500] },
+            amount: { enum: [0, 1500] },
             reference: { bsonType: "string", minLength: 3, maxLength: 100 },
             referenceKey: { bsonType: "string" },
             methodId: { bsonType: "string" },

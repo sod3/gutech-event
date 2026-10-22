@@ -1,38 +1,42 @@
 import type { Filter } from "mongodb";
 import type { TeamDoc } from "./types";
-
 export const REGISTRATION_STATUSES = [
-  "new",
-  "contacted",
-  "awaiting_confirmation",
-  "confirmed",
+  "pending",
+  "shortlisted",
+  "rejected",
 ] as const;
 export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number];
 export const REGISTRATION_LABELS: Record<RegistrationStatus, string> = {
-  new: "New Registration",
-  contacted: "Contacted",
-  awaiting_confirmation: "Awaiting Confirmation",
-  confirmed: "Confirmed",
+  pending: "Pending",
+  shortlisted: "Shortlisted",
+  rejected: "Rejected",
 };
+export const STARTUP_STAGES = [
+  "Idea Only",
+  "Prototype",
+  "MVP",
+  "Existing or Growing Business",
+] as const;
+export type StartupStage = (typeof STARTUP_STAGES)[number];
 export const ORGANIZER_FOLLOW_UP =
-  "Our organizing team will contact you on WhatsApp with further details, including registration fee payment instructions.";
-
+  "Our team will review your startup and PDF pitch deck and contact you if shortlisted. Registration is completely free.";
 // Existing confirmed teams retain access without rewriting their payment history.
 export function registrationStatus(
   team: Pick<TeamDoc, "registrationStatus" | "payment">,
 ): RegistrationStatus {
-  return (
-    team.registrationStatus ??
-    (team.payment.status === "confirmed" ? "confirmed" : "new")
-  );
+  const status = team.registrationStatus;
+  if (status === "shortlisted" || status === "confirmed") return "shortlisted";
+  if (status === "rejected") return "rejected";
+  if (status) return "pending";
+  return team.payment.status === "confirmed" ? "shortlisted" : "pending";
 }
 export const CONFIRMED_TEAM_FILTER: Filter<TeamDoc> = {
   $or: [
+    { registrationStatus: "shortlisted" },
     { registrationStatus: "confirmed" },
     { registrationStatus: { $exists: false }, "payment.status": "confirmed" },
   ],
 };
-
 export function normalizeWhatsApp(value: string): string | null {
   const raw = value.trim();
   if (!/^\+?[\d\s()-]+$/.test(raw)) return null;
@@ -54,6 +58,6 @@ export function whatsappContactUrl(team: {
 }): string | null {
   const number = normalizeWhatsApp(team.whatsapp);
   if (!number) return null;
-  const message = `Assalamualaikum ${team.members[0].name},\n\nThank you for registering Team ${team.name} for BuildFest 2026 at GUtech University!\n\nWe are pleased to receive your registration. The registration fee is PKR 1,500 per team.\n\nWe will share the next steps and payment details with you.\n\nRegards,\nBuildFest 2026 Organizing Team\nGUtech Entrepreneurship Society`;
+  const message = `Assalamualaikum ${team.members[0].name},\n\nThank you for applying with ${team.name} to LEAP 3, GUtech University's Official Startup Pitching Event.\n\nRegistration is completely free. Our team reviews every startup and PDF pitch deck and will contact shortlisted teams with pitching details.\n\nRegards,\nLEAP 3 Organizing Team\nEntrepreneurship Society`;
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }

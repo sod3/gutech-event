@@ -9,7 +9,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  Command,
+  MoveUpRight,
   LoaderCircle,
   LogOut,
   Menu,
@@ -19,19 +19,18 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 export { formatDate } from "@/lib/dates";
-
 export function Brand({ small = false }: { small?: boolean }) {
   return (
     <Link
       className={`brand ${small ? "brand-small" : ""}`}
       href="/"
-      aria-label="BuildFest home"
+      aria-label="LEAP 3 home"
     >
       <span className="brand-symbol">
-        <Command size={23} strokeWidth={2.5} />
+        <MoveUpRight size={23} strokeWidth={2.5} />
       </span>
       <span>
-        buildfest<span className="brand-year">26</span>
+        LEAP<span className="brand-year">3</span>
       </span>
     </Link>
   );
@@ -46,14 +45,14 @@ export function Header() {
           className={open ? "site-nav is-open" : "site-nav"}
           aria-label="Main navigation"
         >
-          <Link href="/#challenge" onClick={() => setOpen(false)}>
-            The challenge
+          <Link href="/#about" onClick={() => setOpen(false)}>
+            The event
           </Link>
           <Link href="/#journey" onClick={() => setOpen(false)}>
             How it works
           </Link>
-          <Link href="/#judging" onClick={() => setOpen(false)}>
-            Judging
+          <Link href="/#opportunities" onClick={() => setOpen(false)}>
+            Opportunities
           </Link>
           <Link href="/#faq" onClick={() => setOpen(false)}>
             FAQs
@@ -67,7 +66,7 @@ export function Header() {
             Sign in <ArrowUpRight size={13} />
           </Link>
           <Link href="/register" className="button button-primary button-small">
-            Register your team <ArrowUpRight size={16} />
+            Apply for free <ArrowUpRight size={16} />
           </Link>
           <button
             className="menu-toggle icon-button"
@@ -92,25 +91,16 @@ export function Footer() {
             <p>A space for the ideas that won’t leave you alone.</p>
           </div>
           <div className="footer-links">
-            <Link href="/rules">Event rules</Link>
-            <Link href="/privacy">Privacy & refunds</Link>
+            <Link href="/rules">Application guide</Link>
+            <Link href="/privacy">Privacy policy</Link>
             <Link href="/login?role=admin">
               Organizer access <ArrowUpRight size={13} />
             </Link>
           </div>
         </div>
         <div className="footer-bottom">
-          <span>© 2026 BuildFest · GUtech Entrepreneurship Society</span>
-          <span>
-            Powered by{" "}
-            <a
-              href="https://artdera.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              ArtDera <ArrowUpRight size={12} />
-            </a>
-          </span>
+          <span>© 2026 LEAP 3 · GUtech Entrepreneurship Society</span>
+          <span>GUtech University · Entrepreneurship Society</span>
           <a href="#top">
             Back to top <ArrowDown size={12} className="rotate-180" />
           </a>
@@ -167,9 +157,6 @@ export function Status({
       {
         {
           ...REGISTRATION_LABELS,
-          pending: "Awaiting Organizer Contact",
-          confirmed: "Confirmed",
-          rejected: "Action needed",
           draft: "Draft",
           final: "Final submitted",
         }[status]

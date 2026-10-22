@@ -12,7 +12,6 @@ import {
 import { registrationStatus, REGISTRATION_STATUSES } from "@/lib/registration";
 import { lockOpenEvent } from "@/lib/judging";
 import { queueConfirmation } from "@/lib/mail";
-
 export async function PATCH(request: Request) {
   try {
     sameOrigin(request);
@@ -54,7 +53,7 @@ export async function PATCH(request: Request) {
           (team.internalNotes || "") === input.internalNotes
         )
           return;
-        if ((before === "confirmed") !== (input.status === "confirmed"))
+        if ((before === "shortlisted") !== (input.status === "shortlisted"))
           await lockOpenEvent(session);
         await c.teams.updateOne(
           { _id: teamId },
@@ -78,7 +77,7 @@ export async function PATCH(request: Request) {
           },
           { session },
         );
-        if (before !== "confirmed" && input.status === "confirmed")
+        if (before !== "shortlisted" && input.status === "shortlisted")
           await queueConfirmation(team, session);
       });
     } finally {

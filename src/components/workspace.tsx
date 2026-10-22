@@ -47,11 +47,11 @@ export function Workspace({
         <div className="sidebar-bottom">
           <div className="sidebar-event">
             <Sparkles size={21} />
-            <h4>Build something that matters.</h4>
+            <h4>Pitch your startup.</h4>
             <p>
-              One idea. Three minds.
+              Your idea. Your next chapter.
               <br />
-              Endless possibilities.
+              Unlock opportunities.
             </p>
             <Link
               className="text-link"
@@ -67,7 +67,7 @@ export function Workspace({
       <main className="workspace-main">
         <div className="workspace-topbar">
           <span>
-            BuildFest 2026 <span style={{ margin: "0 6px" }}>/</span>{" "}
+            LEAP 3 <span style={{ margin: "0 6px" }}>/</span>{" "}
             {tabs.find((t) => t.id === active)?.title}
           </span>
           <div>

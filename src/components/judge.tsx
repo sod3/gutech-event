@@ -16,6 +16,8 @@ type JudgeData = {
     name: string;
     registrationId: string;
     submission: Submission;
+    startupStage?: string;
+    startupDescription?: string;
   }[];
   scores: { teamId: string; scores: number[]; feedback: string }[];
   resultsPublished: boolean;
@@ -67,7 +69,7 @@ export function Judge({ name }: { name: string }) {
       title="JUDGE WORKSPACE"
       name={name}
       tabs={[
-        { id: "projects", title: "Assigned projects", icon: FileText },
+        { id: "projects", title: "Assigned startups", icon: FileText },
         { id: "rubric", title: "Judging rubric", icon: ListChecks },
       ]}
       active={tab}
@@ -96,16 +98,16 @@ export function Judge({ name }: { name: string }) {
             </div>
           ))}
           <p className="payment-help">
-            AI is allowed. Participants must understand their product and
-            declare assistance. A complex website is not the primary measure of
-            innovation.
+            A working product is not required. Review each startup’s idea,
+            target customers, and pitch deck in the context of its current
+            stage.
           </p>
         </div>
       ) : (
         <>
           <div className="workspace-card">
             <div className="card-header">
-              <h2>Your assigned projects</h2>
+              <h2>Your assigned startups</h2>
               <span>{data?.teams.length || 0} TEAMS</span>
             </div>
             {data?.teams.length ? (
@@ -127,7 +129,7 @@ export function Judge({ name }: { name: string }) {
                   >
                     {data.scores.some((s) => s.teamId === t.id)
                       ? "Review score"
-                      : "Open project"}
+                      : "Open startup"}
                     <ArrowUpRight size={12} />
                   </button>
                 </div>
@@ -141,7 +143,8 @@ export function Judge({ name }: { name: string }) {
                     : "Loading assigned projects…"
                 }
               >
-                Organizers will assign confirmed teams for you to review here.
+                Organizers will assign shortlisted startups for you to review
+                here.
               </EmptyState>
             )}
           </div>
@@ -153,6 +156,8 @@ export function Judge({ name }: { name: string }) {
                   <FileText size={15} />
                 </div>
                 {[
+                  ["Startup stage", project.startupStage],
+                  ["Startup description", project.startupDescription],
                   ["Problem statement", project.submission.problem],
                   ["Solution & uniqueness", project.submission.solution],
                   ["Research & validation", project.submission.research],

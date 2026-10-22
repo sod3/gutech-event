@@ -1,6 +1,5 @@
 import type { ObjectId, Binary } from "mongodb";
-import type { RegistrationStatus } from "./registration";
-
+import type { RegistrationStatus, StartupStage } from "./registration";
 export type Role = "participant" | "admin" | "judge";
 export type PaymentStatus = "pending" | "confirmed" | "rejected";
 export type Member = { name: string; email: string };
@@ -74,7 +73,15 @@ export type TeamDoc = {
   whatsapp: string;
   institution?: string;
   department: string;
-  registrationStatus?: RegistrationStatus;
+  startupStage?: StartupStage;
+  startupDescription?: string;
+  applicationDeckFileId?: string;
+  registrationStatus?:
+    | RegistrationStatus
+    | "new"
+    | "contacted"
+    | "awaiting_confirmation"
+    | "confirmed";
   internalNotes?: string;
   whatsappConsent?: boolean;
   whatsappConsentAt?: Date;
@@ -106,6 +113,9 @@ export type SafeTeam = {
   institution?: string;
   department: string;
   registrationStatus: RegistrationStatus;
+  startupStage?: StartupStage;
+  startupDescription?: string;
+  applicationDeckFileId?: string;
   payment: {
     status: PaymentStatus;
     methodId?: string;
@@ -179,7 +189,6 @@ export type PublicEvent = EventSettings & {
   announcements: { id: string; title: string; message: string; date: string }[];
   results: PublicResult[];
 };
-
 export const EMPTY_SUBMISSION: Submission = {
   title: "",
   problem: "",
@@ -205,7 +214,7 @@ export const DEFAULT_SETTINGS: EventSettings = {
   refundPolicy: "",
   resultsPublished: false,
 };
-export const FEE = 1500;
+export const FEE = 0;
 export const CRITERIA = [
   {
     name: "Problem & real-world impact",
@@ -238,10 +247,10 @@ export const CRITERIA = [
       "Evidence from real people, research, or interviews that supports the need for your idea.",
   },
   {
-    name: "MVP / website prototype",
+    name: "Team & execution readiness",
     points: 5,
     description:
-      "A prototype that demonstrates the core idea. Complexity is not a requirement.",
+      "The team’s understanding of the opportunity and a credible plan for its next steps. A working product is not required.",
   },
 ] as const;
 export function registrationState(settings: EventSettings) {
@@ -261,7 +270,7 @@ export function registrationState(settings: EventSettings) {
     return {
       open: false,
       reason:
-        "Registration has closed. Thank you for your interest in BuildFest 2026.",
+        "Applications have closed. Thank you for your interest in LEAP 3.",
     };
   return { open: true, reason: "Registration is open" };
 }

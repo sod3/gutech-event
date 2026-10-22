@@ -151,24 +151,35 @@ function check(label, value) {
   checks++;
   console.log(`PASS ${label}`);
 }
-function form(data, receipt) {
+const applicationPdf = new Blob(
+  ["%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF"],
+  { type: "application/pdf" },
+);
+function form(data, deck = applicationPdf) {
   const f = new FormData();
   f.set("data", JSON.stringify(data));
-  if (receipt) f.set("receipt", receipt, "receipt.png");
+  if (deck) f.set("deck", deck, "startup-pitch.pdf");
   return f;
 }
 const registration = {
-  teamName: "Verification Team One",
+  startupName: "Verification Team One",
+  startupStage: "Idea Only",
+  startupDescription:
+    "We connect university students with local internship opportunities through a curated platform for students and organizations.",
   leaderName: "Test Leader",
   email: `leader-${suffix}@example.test`,
   password,
   whatsapp: "+92 300 0000000",
   institution: "Verification University",
   department: "Verification program",
-  teamSize: 3,
+  teamSize: 6,
   members: [
     { name: "Test Member Two", email: `member2-${suffix}@example.test` },
     { name: "Test Member Three", email: `member3-${suffix}@example.test` },
+    ...Array.from({ length: 3 }, (_, i) => ({
+      name: `Additional Member ${i}`,
+      email: `extra${i}-${suffix}@example.test`,
+    })),
   ],
   requestId: randomUUID(),
   whatsappConsent: true,
@@ -335,7 +346,7 @@ try {
   );
   check(
     "existing paid teams retain confirmed access",
-    legacy.registrationStatus === "confirmed",
+    legacy.registrationStatus === "shortlisted",
   );
   check(
     "historical payment details survive schema/index migration",
@@ -357,24 +368,66 @@ try {
     (await existingLeader("/dashboard")).status === 200 &&
       (await existingLeader("/dashboard/confirmation")).status === 200 &&
       (await existingLeader("/register")).status === 307 &&
-      !Object.hasOwn((await existingLeader("/api/team")).data.team, "institution"),
+      !Object.hasOwn(
+        (await existingLeader("/api/team")).data.team,
+        "institution",
+      ),
   );
   assert.deepEqual(
     await db.collection("teams").findOne({ _id: legacyId }),
     legacyBefore,
   );
-  check("existing registration data is not backfilled or changed", !Object.hasOwn(legacy, "institution"));
+  check(
+    "existing registration data is not backfilled or changed",
+    !Object.hasOwn(legacy, "institution"),
+  );
   await db.collection("teams").deleteOne({ _id: legacyId });
   check(
     "new registration requires a university or college",
     (
-      await makeClient()("/api/register", "POST", form({
-        ...registration,
-        requestId: randomUUID(),
-        institution: undefined,
-      }))
-    ).status === 400 &&
-      (await db.collection("teams").countDocuments()) === 0,
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form({
+          ...registration,
+          requestId: randomUUID(),
+          institution: undefined,
+        }),
+      )
+    ).status === 400 && (await db.collection("teams").countDocuments()) === 0,
+  );
+  check(
+    "PDF is required before application creation",
+    (await makeClient()("/api/register", "POST", form(registration, null)))
+      .status === 400,
+  );
+  check(
+    "spoofed application PDF is rejected",
+    (
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form(
+          registration,
+          new Blob(["not a PDF"], { type: "application/pdf" }),
+        ),
+      )
+    ).status === 400,
+  );
+  check(
+    "oversized application deck is rejected",
+    (
+      await makeClient()(
+        "/api/register",
+        "POST",
+        form(
+          registration,
+          new Blob(["%PDF-", new Uint8Array(3000000)], {
+            type: "application/pdf",
+          }),
+        ),
+      )
+    ).status === 400,
   );
   const submissions = await Promise.all([
     leader("/api/register", "POST", form(registration)),
@@ -395,13 +448,38 @@ try {
   );
   let team = (await leader("/api/team")).data.team;
   check(
-    "new registration awaits organizer contact without recording payment",
-    team.registrationStatus === "new" &&
+    "new application starts pending with zero fee",
+    team.registrationStatus === "pending" &&
       team.payment.status === "pending" &&
+      team.payment.amount === 0 &&
       !team.payment.reference &&
       !team.payment.receiptId,
   );
-  check("three participants persist", team.members.length === 3);
+  check(
+    "startup fields and original PDF persist atomically",
+    team.startupStage === "Idea Only" &&
+      team.startupDescription === registration.startupDescription &&
+      team.applicationDeckFileId === team.submission.deckFileId &&
+      (await db.collection("files").countDocuments()) === 1,
+  );
+  check(
+    "organizer can download pending application PDF",
+    (await admin(`/api/files/${team.applicationDeckFileId}`)).status === 200,
+  );
+  check(
+    "guest cannot download application PDF",
+    (await guest(`/api/files/${team.applicationDeckFileId}`)).status === 401,
+  );
+  check(
+    "success page confirms conditional selection",
+    (await leader("/register/success")).data.includes(
+      "Our team will review your startup and contact you if shortlisted.",
+    ),
+  );
+  check(
+    "six participants persist without a team-size cap",
+    team.members.length === 6,
+  );
   check(
     "new registration saves the university or college",
     team.institution === registration.institution &&
@@ -422,10 +500,10 @@ try {
     (await admin("/api/admin")).data.teams.some(
       (t) =>
         t.registrationId === team.registrationId &&
-        t.members.length === 3 &&
+        t.members.length === 6 &&
         t.whatsapp === "+923000000000" &&
         t.institution === registration.institution &&
-        t.registrationStatus === "new" &&
+        t.registrationStatus === "pending" &&
         t.whatsappConsent,
     ),
   );
@@ -483,8 +561,8 @@ try {
     (
       await leader("/api/admin/registrations", "PATCH", {
         teamId: team.id,
-        status: "confirmed",
-        expectedStatus: "new",
+        status: "shortlisted",
+        expectedStatus: "pending",
         expectedNotes: "",
         internalNotes: "",
       })
@@ -536,7 +614,7 @@ try {
         "POST",
         form({
           ...registration,
-          teamName: "Duplicate member verification",
+          startupName: "Duplicate member verification",
           requestId: randomUUID(),
           email: `new-${suffix}@example.test`,
         }),
@@ -580,7 +658,7 @@ try {
       (await db.collection("teams").countDocuments()) === 1,
   );
   check(
-    "more than three participants rejected",
+    "inconsistent member count rejected",
     (
       await makeClient()(
         "/api/register",
@@ -590,12 +668,12 @@ try {
     ).status === 400,
   );
   check(
-    "admin marks a team contacted and saves internal notes",
+    "admin reviews a pending application and saves private notes",
     (
       await admin("/api/admin/registrations", "PATCH", {
         teamId: team.id,
-        status: "contacted",
-        expectedStatus: "new",
+        status: "pending",
+        expectedStatus: "pending",
         expectedNotes: "",
         internalNotes: "WhatsApp follow-up started.",
       })
@@ -612,20 +690,20 @@ try {
     (
       await admin("/api/admin/registrations", "PATCH", {
         teamId: team.id,
-        status: "new",
-        expectedStatus: "new",
+        status: "pending",
+        expectedStatus: "pending",
         expectedNotes: "",
         internalNotes: "stale",
       })
     ).status === 409,
   );
   check(
-    "admin sets awaiting confirmation",
+    "admin rejects an application",
     (
       await admin("/api/admin/registrations", "PATCH", {
         teamId: team.id,
-        status: "awaiting_confirmation",
-        expectedStatus: "contacted",
+        status: "rejected",
+        expectedStatus: "pending",
         expectedNotes: "WhatsApp follow-up started.",
         internalNotes: "Shared next steps.",
       })
@@ -633,8 +711,8 @@ try {
   );
   const review = {
     teamId: team.id,
-    status: "confirmed",
-    expectedStatus: "awaiting_confirmation",
+    status: "shortlisted",
+    expectedStatus: "rejected",
     expectedNotes: "Shared next steps.",
     internalNotes: "Organizer approved registration.",
   };
@@ -650,29 +728,29 @@ try {
   team = (await leader("/api/team")).data.team;
   check(
     "manual confirmation never marks a team paid",
-    team.registrationStatus === "confirmed" &&
+    team.registrationStatus === "shortlisted" &&
       team.payment.status === "pending",
   );
   check(
     "one confirmation audit record",
     (await db.collection("audit").countDocuments({
       action: "registration_updated",
-      after: "confirmed",
+      after: "shortlisted",
     })) === 1,
   );
   check(
     "emails queued once for all three members",
-    (await db.collection("email_outbox").countDocuments()) === 3,
+    (await db.collection("email_outbox").countDocuments()) === 6,
   );
   check(
     "missing SMTP is honestly unconfigured",
     (await db
       .collection("email_outbox")
-      .countDocuments({ status: "unconfigured" })) === 3,
+      .countDocuments({ status: "unconfigured" })) === 6,
   );
   const second = {
     ...registration,
-    teamName: "Verification Team Two",
+    startupName: "Verification Team Two",
     email: `other-${suffix}@example.test`,
     members: [],
     teamSize: 1,
@@ -707,12 +785,12 @@ try {
     (await leader("/api/team", "PATCH", { submission })).status === 200,
   );
   check(
-    "final submission requires AI declaration",
+    "idea-only pitch does not require an AI declaration or working product",
     (
       await leader("/api/team", "PATCH", {
         submission: { ...submission, final: true, aiDeclaration: false },
       })
-    ).status === 400,
+    ).status === 200,
   );
   const invalidDeck = new FormData();
   invalidDeck.append("purpose", "deck");
@@ -738,7 +816,7 @@ try {
   check(
     "pitch deck stored privately in MongoDB",
     uploaded.status === 200 &&
-      (await db.collection("files").countDocuments({ purpose: "deck" })) === 1,
+      (await db.collection("files").countDocuments({ purpose: "deck" })) === 3,
   );
   const deckId = uploaded.data.fileId;
   check(
@@ -875,7 +953,7 @@ try {
         "POST",
         form({
           ...second,
-          teamName: "After deadline",
+          startupName: "After deadline",
           email: `late-${suffix}@example.test`,
         }),
       )
@@ -940,7 +1018,7 @@ try {
     csv.status === 200 &&
       csv.data.includes(team.registrationId) &&
       csv.data.includes("Registration status") &&
-      csv.data.includes('"University / College"') &&
+      csv.data.includes('"University / Organization"') &&
       csv.data.includes(registration.institution) &&
       csv.data.includes("Organizer approved registration.") &&
       csv.data.includes(registration.members[0].email),

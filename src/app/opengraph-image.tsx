@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-export const alt = "BuildFest 2026 — The next big idea could be yours.";
+export const alt = "LEAP 3 — Pitch Your Startup. Unlock Opportunities.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export default function Image() {
@@ -10,7 +10,7 @@ export default function Image() {
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: "#fafbff",
+        background: "#f0f3e8",
         padding: "70px 80px",
         color: "#0f172a",
         fontFamily: "sans-serif",
@@ -24,22 +24,22 @@ export default function Image() {
           letterSpacing: -1,
         }}
       >
-        buildfest<span style={{ color: "#2563eb", marginLeft: 8 }}>26</span>
+        LEAP<span style={{ color: "#528047", marginLeft: 8 }}>3</span>
       </div>
       <div
         style={{
           display: "flex",
           marginTop: 55,
-          fontSize: 76,
+          fontSize: 65,
           lineHeight: 1,
           fontWeight: 800,
           letterSpacing: -4,
           flexDirection: "column",
         }}
       >
-        <span>THE NEXT BIG IDEA</span>
+        <span>PITCH YOUR STARTUP.</span>
         <span>
-          COULD BE <span style={{ color: "#6d4cde" }}>YOURS.</span>
+          UNLOCK <span style={{ color: "#528047" }}>OPPORTUNITIES.</span>
         </span>
       </div>
       <div
@@ -50,7 +50,7 @@ export default function Image() {
           color: "#667085",
         }}
       >
-        One Idea. Three Minds. Endless Possibilities.
+        GUtech University’s Official Startup Pitching Event
       </div>
       <div
         style={{
@@ -61,7 +61,7 @@ export default function Image() {
         }}
       >
         <span>GUtech Entrepreneurship Society</span>
-        <span>1–3 members · PKR 1,500 per team</span>
+        <span>Free registration · Ideas welcome</span>
       </div>
     </div>,
     size,

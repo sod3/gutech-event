@@ -7,7 +7,6 @@ import { ZodError } from "zod";
 import { collections } from "./db";
 import type { Role, UserDoc } from "./types";
 import { adminOwnerAllowed } from "./admin-owner";
-
 export class HttpError extends Error {
   constructor(
     public status: number,
@@ -29,10 +28,7 @@ export function sameOrigin(request: Request) {
   const allowed = new Set([new URL(request.url).origin]);
   if (process.env.APP_URL) allowed.add(new URL(process.env.APP_URL).origin);
   if (!origin || !allowed.has(origin))
-    throw new HttpError(
-      403,
-      "This request must come from the BuildFest website.",
-    );
+    throw new HttpError(403, "This request must come from the LEAP 3 website.");
   const length = Number(request.headers.get("content-length") || 0);
   if (length > 4_000_000)
     throw new HttpError(413, "Uploads must be smaller than 3 MB.");
@@ -141,7 +137,7 @@ export function apiError(error: unknown) {
     );
   // Never return database errors or credentials to the browser.
   console.error(
-    "BuildFest request failed:",
+    "LEAP 3 request failed:",
     error instanceof Error ? error.name : "UnknownError",
   );
   return NextResponse.json(

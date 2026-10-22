@@ -17,7 +17,7 @@ export default function NotFound() {
           style={{ marginTop: 25 }}
           href="/"
         >
-          Back to BuildFest ↗
+          Back to LEAP 3 ↗
         </Link>
       </main>
       <Footer />

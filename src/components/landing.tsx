@@ -1,759 +1,423 @@
 "use client";
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
 import {
-  ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  AudioLines,
-  Box,
-  BrainCircuit,
+  BriefcaseBusiness,
   Check,
   ChevronDown,
-  Code2,
+  FileText,
+  GraduationCap,
   Lightbulb,
-  MapPin,
-  MessageCircle,
   MoveUpRight,
-  Orbit,
+  Network,
   Rocket,
-  ScanLine,
-  ShieldCheck,
-  Sparkles,
-  Target,
-  Users,
+  Sprout,
 } from "lucide-react";
-import {
-  Countdown,
-  Footer,
-  Header,
-  Reveal,
-  SectionLabel,
-  formatDate,
-} from "./ui";
-import { CRITERIA, registrationState, type PublicEvent } from "@/lib/types";
+import { Footer, Header, Reveal, SectionLabel, formatDate } from "./ui";
 import { usePublicEvent } from "./use-public-event";
-
-function IdeaSculpture() {
-  const [stage, setStage] = useState(0);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const stages = [
-    { label: "A spark of an idea", icon: Lightbulb },
-    { label: "A solution takes shape", icon: Box },
-    { label: "Something worth building", icon: Rocket },
-  ];
-  const Icon = stages[stage].icon;
-  return (
-    <div
-      className="idea-stage"
-      onPointerMove={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        setPosition({
-          x: (e.clientX - r.left - r.width / 2) / 28,
-          y: (e.clientY - r.top - r.height / 2) / 28,
-        });
-      }}
-      onPointerLeave={() => setPosition({ x: 0, y: 0 })}
-      style={
-        {
-          "--mouse-x": `${position.x}px`,
-          "--mouse-y": `${position.y}px`,
-        } as CSSProperties
-      }
-    >
-      <div className="stage-grid" />
-      <div className="stage-glow" />
-      <div className="orbit-line orbit-one" />
-      <div className="orbit-line orbit-two" />
-      <span className="coordinates coordinate-top">
-        IDEA / 001 · IDEAS WITHOUT LIMITS
-      </span>
-      <span className="coordinates coordinate-bottom">
-        HUMAN AMBITION × ARTIFICIAL INTELLIGENCE
-      </span>
-      <div className="sculpture">
-        <div className="sculpture-shadow" />
-        <div className="sphere">
-          <div className="sphere-inner" />
-          <div className="sphere-ring ring-a" />
-          <div className="sphere-ring ring-b" />
-          <div className="sphere-ring ring-c" />
-          <div className="sphere-ring ring-d" />
-          <div className="sphere-core">
-            <Icon size={48} strokeWidth={1.2} />
-          </div>
-          <div className="sphere-highlight" />
-        </div>
-      </div>
-      <div className="floating-note note-idea">
-        <span className="note-icon">
-          <Sparkles size={17} />
-        </span>
-        <div>
-          <small>IT STARTS WITH</small>
-          <strong>“What if?”</strong>
-        </div>
-        <span className="note-spark" />
-      </div>
-      <div className="floating-note note-product">
-        <div className="mini-product">
-          <div>
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="mini-product-line" />
-          <div className="mini-product-chart">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        </div>
-        <div>
-          <small>YOUR NEXT CHAPTER</small>
-          <strong>
-            Idea. Built. <MoveUpRight size={14} />
-          </strong>
-        </div>
-        <span className="product-check">
-          <Check size={14} />
-        </span>
-      </div>
-      <span className="orbit-particle particle-one" />
-      <span className="orbit-particle particle-two" />
-      <span className="cross cross-one">+</span>
-      <span className="cross cross-two">+</span>
-      <button
-        className="stage-switch"
-        onClick={() => setStage((stage + 1) % 3)}
-        aria-label="Explore the next stage of an idea"
-      >
-        <span className="stage-switch-icon">
-          <Icon size={16} />
-        </span>
-        {stages[stage].label}
-        <ArrowRight size={15} />
-      </button>
-      <span className="stage-index">
-        0{stage + 1} <span>/ 03</span>
-      </span>
-      <div className="hero-badges">
-        <span>
-          <BrainCircuit size={12} />
-          AI-powered innovation
-        </span>
-        <span>
-          <Users size={12} />
-          Up to 3 members
-        </span>
-      </div>
-    </div>
-  );
-}
-const benefits = [
+import { registrationState, type PublicEvent } from "@/lib/types";
+const opportunities = [
   {
-    icon: Target,
-    title: "Start with a real problem.",
-    text: "Look closer at the world around you. Find a challenge that deserves a better answer.",
-    tag: "REAL-WORLD IMPACT",
+    icon: BriefcaseBusiness,
+    name: "Internships",
+    text: "Put your potential in front of people looking for ambitious talent.",
+    number: "01",
   },
   {
-    icon: BrainCircuit,
-    title: "Let AI be your co-builder.",
-    text: "Bring your curiosity. Use AI, code, or no-code tools to turn your idea into a working prototype.",
-    tag: "AI IS ENCOURAGED",
+    icon: Sprout,
+    name: "Startup Incubation",
+    text: "Explore pathways to turn a promising idea into a sustainable venture.",
+    number: "02",
   },
   {
-    icon: Users,
-    title: "Find your kind of people.",
-    text: "Collaborate with ambitious students, connect across departments, and build something together.",
-    tag: "1–3 MINDS. ONE MISSION.",
+    icon: GraduationCap,
+    name: "PhD Professor Mentorship",
+    text: "Find expert perspectives to challenge your thinking and guide your next step.",
+    number: "03",
   },
   {
-    icon: AudioLines,
-    title: "Make your idea heard.",
-    text: "Learn to shape a startup concept and pitch its potential to a panel of experienced judges.",
-    tag: "BUILD. PITCH. GROW.",
+    icon: Rocket,
+    name: "Startup Growth Support",
+    text: "Discover guidance and connections to help your startup move forward.",
+    number: "04",
+  },
+  {
+    icon: Network,
+    name: "Networking",
+    text: "Meet fellow founders, mentors, and a community that thinks bigger.",
+    number: "05",
   },
 ];
-const phases = [
+const steps = [
   {
-    title: "Find your people.",
-    subtitle: "Register your team",
-    text: "Go solo or bring up to two teammates. PKR 1,500 covers your entire team.",
-    icon: Users,
+    name: "Submit Your Startup",
+    text: "Tell us about your startup, introduce your team, and upload your PDF pitch deck.",
   },
   {
-    title: "Ask a better question.",
-    subtitle: "Discover a problem",
-    text: "Research a real challenge. Talk to the people it affects. Find an opportunity to make things better.",
-    icon: Lightbulb,
+    name: "Application Review",
+    text: "Our organizers review every startup idea and its pitch deck.",
   },
   {
-    title: "Make it real.",
-    subtitle: "Build your solution",
-    text: "Use AI, no-code tools, design, and code to bring an original MVP or prototype to life.",
-    icon: Code2,
+    name: "Shortlisting",
+    text: "Selected startups are contacted with an invitation and pitching details.",
   },
   {
-    title: "Own the stage.",
-    subtitle: "Pitch your innovation",
-    text: "Explain the problem, your approach, what makes it unique, and the impact it could have.",
-    icon: AudioLines,
-  },
-  {
-    title: "Leave your mark.",
-    subtitle: "Win & get recognized",
-    text: "The most innovative, practical, and clearly explained solutions rise to the top.",
-    icon: Rocket,
+    name: "Pitch at LEAP 3",
+    text: "Present your startup to a panel of judges and connect with new opportunities.",
   },
 ];
 export function Landing({ event: initialEvent }: { event: PublicEvent }) {
   const event = usePublicEvent(initialEvent);
-  const [activeCriterion, setActiveCriterion] = useState(0);
-  const state = event.available
-    ? registrationState(event)
-    : {
-        open: false,
-        reason:
-          "Registration is temporarily unavailable. Please check back shortly.",
-      };
+  const state = registrationState(event);
   const faqs = [
     [
-      "Who can participate?",
-      "BuildFest 2026 is open to students from all departments. You don’t need to be a computer science student or an expert coder. Bring curiosity, commitment, and a problem worth solving.",
+      "Do I need a working product?",
+      "No. A strong startup idea is eligible. Apply at the Idea Only, Prototype, MVP, or Existing or Growing Business stage. Your PDF pitch deck should explain your idea, the problem, your solution, and your target customers.",
     ],
     [
-      "How much does registration cost?",
-      "PKR 1,500 per team, whether you participate alone or with two teammates. Enter your team details, review, and submit. Our organizing team will contact you on WhatsApp with further details, including registration fee payment instructions.",
+      "Will we build something during the event?",
+      "No. LEAP 3 is a Startup Pitching Event. Participants present their existing idea, prototype, MVP, or growing business to judges. There is no project-building period during the event.",
     ],
     [
-      "Can I join on my own?",
-      "Absolutely. Teams can have one, two, or three members, including the team leader. Solo innovators are welcome.",
+      "Is registration really free?",
+      "Yes. Registration is completely FREE. Submit your team details and PDF pitch deck through the application form.",
     ],
     [
-      "Are AI and no-code tools allowed?",
-      "Yes. AI tools are allowed and encouraged. You must understand your solution, explain how it works, and declare any AI assistance in your project submission.",
+      "Does applying guarantee a pitching slot?",
+      "No. Organizers review all startup ideas and PDF pitch decks. Only shortlisted startups will be invited to pitch at LEAP 3. Our team will contact your team leader if shortlisted.",
     ],
     [
-      "Do I need to build a complex website?",
-      "No. Your MVP or website prototype is worth 5 out of 100 points. The biggest focus is the problem, impact, originality, and how clearly you explain your idea.",
+      "How many members can our team have?",
+      "There is no team-member limit. Solo founders are welcome, and you can add as many members as you need in the application form. Include each member’s full name and email.",
     ],
     [
-      "When and where is the event?",
-      `The event takes place at GUtech University, Pakistan. ${event.eventDate ? `The confirmed date is ${formatDate(event.eventDate, true)}.` : "The official event date and schedule will be announced here once confirmed."}`,
+      "What should the PDF pitch deck include?",
+      "Explain your startup idea, the problem, your solution, and your target customers. Include your current stage and team; add validation, traction, or product visuals if available. A working product is not required. Upload a PDF smaller than 3 MB.",
     ],
     [
-      "When does registration close?",
-      event.registrationDeadline
-        ? `Registration closes on ${formatDate(event.registrationDeadline)}. Complete your team registration before the deadline; signups close automatically.`
-        : "The official registration deadline will be announced here.",
-    ],
-    [
-      "What happens after I register?",
-      "Your details are securely saved and you receive a registration ID immediately. Our organizing team will contact your team leader on WhatsApp with next steps and payment instructions. Your place is confirmed manually by an organizer.",
+      "Who are the judges?",
+      "Announcing Soon. The official judging panel will be shared by the Entrepreneurship Society.",
     ],
   ];
   return (
     <>
       <Header />
-      <main id="top">
-        <section className="hero">
-          <div className="container hero-layout">
-            <div className="hero-copy">
-              <Reveal>
-                <div className="event-kicker">
-                  <span className="pill-dot" />
-                  GUTECH’S INNOVATION CHALLENGE
-                  <span className="kicker-year">2026</span>
-                </div>
-                <h1>
-                  THE NEXT
-                  <br />
-                  BIG IDEA
-                  <br />
-                  COULD BE
-                  <br />
-                  <span className="gradient-text">YOURS.</span>
-                  <span className="headline-star">✳</span>
-                </h1>
-                <p className="hero-tagline">
-                  One idea. Three minds.
-                  <br className="mobile-break" /> Endless possibilities.
-                </p>
-                <p className="hero-description">
-                  Turn real-world problems into extraordinary solutions.
-                  <br className="desktop-break" /> Build with AI. Find your
-                  people. Pitch what’s next.
-                </p>
-                <div className="hero-actions">
-                  <Link href="/register" className="button button-primary">
-                    Register your team <ArrowUpRight size={19} />
-                  </Link>
-                  <a href="#challenge" className="hero-explore">
-                    Explore the challenge <ArrowDown size={16} />
-                  </a>
-                </div>
-                <div className="hero-trust">
-                  <ShieldCheck size={16} />
-                  <span>
-                    <strong>PKR 1,500</strong> per team{" "}
-                    <span className="trust-separator">·</span> All departments
-                    welcome
-                  </span>
-                </div>
-              </Reveal>
+      <main id="top" className="leap-site">
+        <section className="leap-hero container">
+          <div className="leap-hero-copy">
+            <div className="leap-eyebrow">
+              <span /> GUtech University’s Official Startup Pitching Event
             </div>
-            <Reveal className="hero-art" delay={0.15}>
-              <IdeaSculpture />
-            </Reveal>
-          </div>
-          <div className="container hero-bottom">
-            <div className="hero-location">
-              <MapPin size={16} />
+            <h1>
+              Pitch Your
+              <br />
+              Startup.
+              <br />
               <span>
-                GUtech University, Pakistan
-                {event.eventDate && (
-                  <span className="hero-event-date">
-                    {formatDate(event.eventDate, true)}
-                  </span>
-                )}
+                Unlock
+                <br className="leap-mobile-break" /> Opportunities.
+              </span>
+            </h1>
+            <p>
+              Your idea deserves a room full of possibility. Present your
+              startup to a panel of judges and take the next leap with a
+              community of founders and mentors.
+            </p>
+            <div className="leap-hero-actions">
+              <Link className="button button-primary" href="/register">
+                Submit your startup <ArrowUpRight size={18} />
+              </Link>
+              <a className="leap-simple-link" href="#journey">
+                How it works <ArrowRight size={15} />
+              </a>
+            </div>
+            <div className="leap-hero-note">
+              <span>
+                <Check size={14} /> Completely free
+              </span>
+              <span>
+                <Check size={14} /> Ideas welcome
+              </span>
+              <span>
+                <Check size={14} /> Every stage
               </span>
             </div>
-            <div className="hero-deadline">
-              {event.registrationDeadline && (
-                <p>
-                  Registration closes {formatDate(event.registrationDeadline)}
-                </p>
-              )}
-              <Countdown deadline={event.registrationDeadline} />
+          </div>
+          <div
+            className="leap-visual"
+            aria-label="LEAP 3. A stage for your next big idea."
+          >
+            <div className="leap-visual-top">
+              <span>THE NEXT CHAPTER STARTS HERE</span>
+              <MoveUpRight size={24} />
             </div>
-            <a href="#challenge" className="scroll-cue">
-              SCROLL TO DISCOVER <ArrowDown size={13} />
-            </a>
+            <div className="leap-orbits">
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="leap-sculpture">
+              <div className="leap-block leap-block-one" />
+              <div className="leap-block leap-block-two" />
+              <div className="leap-block leap-block-three" />
+              <MoveUpRight className="leap-rise" strokeWidth={1.1} />
+            </div>
+            <div className="leap-visual-title">
+              LEAP<span>3</span>
+              <small>BIG IDEAS. REAL OPPORTUNITIES.</small>
+            </div>
+            <div className="leap-floating-card">
+              <span>
+                <Lightbulb size={19} />
+              </span>
+              <div>
+                <strong>It starts with an idea.</strong>
+                <small>A working product is optional.</small>
+              </div>
+              <ArrowUpRight size={17} />
+            </div>
+            <div className="leap-visual-bottom">
+              <span>GUtech University</span>
+              <span>EDITION 03</span>
+            </div>
           </div>
         </section>
-        <section className="partners-band">
-          <div className="container partners-inner">
-            <div className="partner-intro">
-              BIG IDEAS.
+        <div className="leap-info-strip">
+          <div className="container">
+            <div>
+              <span>THE EVENT</span>
+              <strong>LEAP 3 · Startup Pitching Event</strong>
+            </div>
+            <div>
+              <span>ORGANIZED BY</span>
+              <strong>Entrepreneurship Society</strong>
+            </div>
+            <div>
+              <span>EVENT DATE</span>
+              <strong>{formatDate(event.eventDate, true)}</strong>
+            </div>
+            <div>
+              <span>REGISTRATION</span>
+              <strong className="leap-free">
+                Completely FREE <ArrowUpRight size={16} />
+              </strong>
+            </div>
+          </div>
+        </div>
+        <section id="about" className="container leap-section leap-about">
+          <Reveal>
+            <SectionLabel number="01">YOUR STARTUP. YOUR STAGE.</SectionLabel>
+            <h2>
+              Big things begin
               <br />
-              <strong>BACKED BY GOOD PEOPLE.</strong>
-            </div>
-            <div className="partner-brand">
-              {event.organizerLogoId ? (
-                <img
-                  src={`/api/files/${event.organizerLogoId}`}
-                  alt="Official GUtech Entrepreneurship Society logo"
-                />
-              ) : (
-                <span className="gutech-wordmark">
-                  GUtech<span>Entrepreneurship Society</span>
+              with a <span>bold idea.</span>
+            </h2>
+          </Reveal>
+          <Reveal className="leap-about-copy">
+            <p>
+              LEAP 3 is GUtech University’s Official Startup Pitching Event,
+              organized by the Entrepreneurship Society. Bring the startup you
+              believe in and present it to a panel of judges.
+            </p>
+            <p>
+              From your first idea to your next growth milestone, there’s a
+              place for your ambition.{" "}
+              <strong>You don’t need a working product to apply.</strong>
+            </p>
+            <div className="leap-stage-tags">
+              {[
+                "Idea Only",
+                "Prototype",
+                "MVP",
+                "Existing or Growing Business",
+              ].map((s) => (
+                <span key={s}>
+                  <Check size={13} />
+                  {s}
                 </span>
-              )}
-              <small>ORGANIZED BY</small>
+              ))}
             </div>
-            <div className="partner-divider" />
-            <a
-              className="partner-brand"
-              href="https://artdera.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {event.partnerLogoId ? (
-                <img
-                  src={`/api/files/${event.partnerLogoId}`}
-                  alt="Official ArtDera logo"
-                />
-              ) : (
-                <span className="artdera-wordmark">
-                  ArtDera
-                  <span className="partner-arrow">
-                    <ArrowUpRight size={22} />
-                  </span>
-                </span>
-              )}
-              <small>POWERED BY</small>
-            </a>
-            <span className="partner-end">
-              <Orbit size={33} strokeWidth={1} />
+            <div className="leap-format-note">
+              <FileText size={21} />
+              <p>
+                <strong>Come ready to pitch.</strong> Apply with your team
+                details and a PDF pitch deck. There is no project-building
+                period during the event; shortlisted teams present their
+                existing startup idea or business.
+              </p>
+            </div>
+          </Reveal>
+        </section>
+        <section id="opportunities" className="leap-opportunities">
+          <div className="container">
+            <Reveal className="leap-section-heading">
+              <div>
+                <SectionLabel number="02">BEYOND THE PITCH</SectionLabel>
+                <h2>
+                  One pitch.
+                  <br />
+                  <span>New possibilities.</span>
+                </h2>
+              </div>
+              <p>
+                More than a moment on stage. A chance to connect with people and
+                pathways that can shape what comes next.
+              </p>
+            </Reveal>
+            <div className="leap-opportunity-grid">
+              {opportunities.map((o) => (
+                <Reveal className="leap-opportunity" key={o.name}>
+                  <div>
+                    <o.icon size={25} strokeWidth={1.5} />
+                    <span>{o.number}</span>
+                  </div>
+                  <h3>{o.name}</h3>
+                  <p>{o.text}</p>
+                  <ArrowUpRight size={19} />
+                </Reveal>
+              ))}
+            </div>
+            <p className="leap-opportunity-note">
+              Opportunities depend on startup fit and partner selection;
+              participation does not guarantee a placement or offer.
+            </p>
+          </div>
+        </section>
+        <section id="journey" className="container leap-section">
+          <Reveal className="leap-section-heading">
+            <div>
+              <SectionLabel number="03">THE ROAD TO THE STAGE</SectionLabel>
+              <h2>
+                Your next leap,
+                <br />
+                <span>in four steps.</span>
+              </h2>
+            </div>
+            <p>
+              Every application gets a review. Shortlisted startups get the
+              invitation to pitch.
+            </p>
+          </Reveal>
+          <div className="leap-steps">
+            {steps.map((s, i) => (
+              <Reveal className="leap-step" key={s.name}>
+                <div>
+                  <span>0{i + 1}</span>
+                  {i < 3 && <ArrowRight size={20} />}
+                </div>
+                <h3>{s.name}</h3>
+                <p>{s.text}</p>
+              </Reveal>
+            ))}
+          </div>
+          <div className="leap-journey-note">
+            <Check size={18} />
+            <span>
+              Submit Your Startup → Application Review → Shortlisting → Pitch at
+              LEAP 3
             </span>
           </div>
         </section>
-        <section id="challenge" className="section challenge-section">
-          <div className="container">
-            <Reveal>
-              <SectionLabel number="01">A CALL TO THE CURIOUS</SectionLabel>
-              <div className="section-heading-row">
-                <h2>
-                  Don’t just think
-                  <br />
-                  about the future.
-                  <br />
-                  <span className="gradient-text">Build it.</span>
-                </h2>
-                <div className="section-aside">
-                  <span className="small-orbit">
-                    <Sparkles size={20} />
-                  </span>
-                  <p>
-                    Your ideas deserve more than
-                    <br />a notes app. This is where you
-                    <br />
-                    give them a life of their own.
-                  </p>
-                  <a href="#journey" className="text-link">
-                    See how it works <ArrowUpRight size={15} />
-                  </a>
-                </div>
-              </div>
-            </Reveal>
-            <div className="benefit-grid">
-              {benefits.map((b, i) => (
-                <Reveal
-                  className={`benefit benefit-${i}`}
-                  delay={i * 0.06}
-                  key={b.title}
-                >
-                  <div className="benefit-top">
-                    <span className="benefit-icon">
-                      <b.icon size={26} strokeWidth={1.5} />
-                    </span>
-                    <span className="benefit-number">0{i + 1}</span>
-                  </div>
-                  <h3>{b.title}</h3>
-                  <p>{b.text}</p>
-                  <span className="benefit-tag">{b.tag}</span>
-                </Reveal>
-              ))}
+        <section id="judging" className="container leap-judges">
+          <Reveal>
+            <SectionLabel number="04">MEET THE PANEL</SectionLabel>
+            <h2>
+              Fresh perspectives.
+              <br />
+              <span>Experienced voices.</span>
+            </h2>
+            <p>A panel ready to hear your vision and explore its potential.</p>
+          </Reveal>
+          <Reveal className="leap-judge-announcement">
+            <div className="leap-judge-avatars">
+              <span />
+              <span />
+              <span />
             </div>
-            <Reveal>
-              <div className="courage-note">
-                <span className="courage-mark">“</span>
-                <p>
-                  You don’t need to be an expert coder.
-                  <br />
-                  <strong>You need the courage to solve a problem.</strong>
-                </p>
-                <div className="courage-art">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-            </Reveal>
+            <span className="leap-eyebrow">THE LEAP 3 JUDGES</span>
+            <h3>Announcing Soon</h3>
+            <p>Watch this space for the official panel.</p>
+          </Reveal>
+        </section>
+        <section id="faq" className="container leap-section leap-faq">
+          <Reveal>
+            <SectionLabel number="05">A LITTLE MORE CLARITY</SectionLabel>
+            <h2>
+              Good questions.
+              <br />
+              <span>Clear answers.</span>
+            </h2>
+            <p>Everything you need before you take the leap.</p>
+          </Reveal>
+          <div>
+            {faqs.map(([q, a]) => (
+              <details key={q}>
+                <summary>
+                  {q}
+                  <ChevronDown size={17} />
+                </summary>
+                <p>{a}</p>
+              </details>
+            ))}
           </div>
         </section>
-        <section id="journey" className="section journey-section">
-          <div className="container">
-            <Reveal>
-              <SectionLabel number="02">
-                FROM WHAT IF TO WHAT’S NEXT
-              </SectionLabel>
-              <div className="section-heading-row">
-                <h2>
-                  Five steps.
-                  <br />
-                  <span className="soft-text">One big leap.</span>
-                </h2>
-                <p className="section-intro">
-                  Every great thing started somewhere.
-                  <br />
-                  Here’s where your journey begins.
-                </p>
-              </div>
-            </Reveal>
-            <div className="journey-list">
-              {phases.map((p, i) => (
-                <Reveal className="journey-item" key={p.title}>
-                  <div className="journey-number">
-                    <span>0{i + 1}</span>
-                    <div className="journey-connector" />
-                  </div>
-                  <div className="journey-title">
-                    <small>{p.subtitle}</small>
-                    <h3>{p.title}</h3>
-                    {event.phaseDates[i] && (
-                      <span className="phase-date">
-                        {formatDate(event.phaseDates[i])}
-                      </span>
-                    )}
-                  </div>
-                  <p>{p.text}</p>
-                  <span className="journey-icon">
-                    <p.icon size={25} strokeWidth={1.4} />
-                  </span>
-                </Reveal>
-              ))}
-            </div>
+        <section className="container leap-final">
+          <div>
+            <span className="leap-eyebrow">
+              YOUR IDEA COULD BE WHAT’S NEXT.
+            </span>
+            <h2>
+              Ready to take
+              <br />
+              the leap<span>?</span>
+            </h2>
+            <p>
+              A strong idea. Your team. A PDF pitch deck.
+              <br />
+              That’s all you need to apply.
+            </p>
+            <Link href="/register" className="button">
+              Apply for free <ArrowUpRight size={18} />
+            </Link>
+            <small>
+              {state.open
+                ? `Applications close ${formatDate(event.registrationDeadline)}`
+                : state.reason}
+            </small>
           </div>
+          <span className="leap-final-arrow" aria-hidden="true">
+            ↗
+          </span>
         </section>
-        <section id="judging" className="section judging-section">
-          <div className="container judging-layout">
-            <Reveal className="judging-copy">
-              <SectionLabel number="03">GOOD IDEAS GET THEIR DUE</SectionLabel>
-              <h2>
-                Big on ideas.
-                <br />
-                <span className="gradient-text">Clear on criteria.</span>
-              </h2>
-              <p className="section-intro">
-                100 points. Six criteria. Zero guesswork.
-                <br />
-                We’re looking for ideas with purpose,
-                <br />
-                not the most complicated website.
-              </p>
-              <div className="score-orbit">
-                <svg viewBox="0 0 200 200" aria-hidden="true">
-                  <circle
-                    cx="100"
-                    cy="100"
-                    r="87"
-                    fill="none"
-                    stroke="#e9edf6"
-                    strokeWidth="7"
-                  />
-                  <circle
-                    cx="100"
-                    cy="100"
-                    r="87"
-                    fill="none"
-                    stroke="url(#score-gradient)"
-                    strokeWidth="7"
-                    strokeDasharray="546"
-                    strokeDashoffset="0"
-                    strokeLinecap="round"
-                    transform="rotate(-90 100 100)"
-                  />
-                  <defs>
-                    <linearGradient id="score-gradient">
-                      <stop stopColor="#2667ed" />
-                      <stop offset="1" stopColor="#9c73ee" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div>
-                  <strong>
-                    100<span>pts</span>
-                  </strong>
-                  <small>IDEAS OVER COMPLEXITY</small>
-                </div>
-                <span className="score-spark">
-                  <Sparkles size={21} />
-                </span>
-              </div>
-            </Reveal>
-            <Reveal className="judging-panel">
-              <div className="judging-panel-heading">
-                <span>WHAT THE JUDGES LOOK FOR</span>
-                <ScanLine size={17} />
-              </div>
-              {CRITERIA.map((c, i) => (
-                <button
-                  key={c.name}
-                  className={`criterion ${activeCriterion === i ? "criterion-active" : ""}`}
-                  onClick={() => setActiveCriterion(i)}
-                  onFocus={() => setActiveCriterion(i)}
-                  aria-expanded={activeCriterion === i}
-                >
-                  <div className="criterion-top">
-                    <span className="criterion-num">0{i + 1}</span>
-                    <strong>{c.name}</strong>
-                    <span className="criterion-points">
-                      {c.points}
-                      <small>pts</small>
-                    </span>
-                  </div>
-                  <div className="criterion-track">
-                    <span style={{ width: `${(c.points / 30) * 100}%` }} />
-                  </div>
-                  {activeCriterion === i && <p>{c.description}</p>}
-                </button>
-              ))}
-              <div className="judging-footnote">
-                <BrainCircuit size={18} />
-                <p>
-                  AI is your advantage. Understand your product
-                  <br />
-                  and be transparent about how you used it.
-                </p>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-        {(event.prizes.length > 0 || event.people.length > 0) && (
-          <section className="section spotlight-section">
-            <div className="container">
-              <Reveal>
-                <SectionLabel number="04">
-                  THE PEOPLE & THE POSSIBILITIES
-                </SectionLabel>
-                <h2>
-                  A little more
-                  <br />
-                  to look forward to.
-                </h2>
-              </Reveal>
-              <div className="spotlight-grid">
-                {event.prizes.map((p) => (
-                  <Reveal className="spotlight-card" key={p.id}>
-                    <Sparkles size={25} />
-                    <small>CONFIRMED AWARD</small>
-                    <h3>{p.title}</h3>
-                    <p>{p.description}</p>
-                  </Reveal>
-                ))}
-                {event.people.map((p) => (
-                  <Reveal className="spotlight-card" key={p.id}>
-                    <div className="person-avatar">
-                      {p.name
-                        .split(" ")
-                        .slice(0, 2)
-                        .map((n) => n[0])
-                        .join("")}
-                    </div>
-                    <small>{p.kind.toUpperCase()}</small>
-                    <h3>{p.name}</h3>
-                    <p>{p.title}</p>
-                  </Reveal>
-                ))}
-              </div>
-            </div>
+        {event.announcements.length > 0 && (
+          <section className="container leap-section">
+            <SectionLabel>FROM THE ORGANIZERS</SectionLabel>
+            {event.announcements.map((a) => (
+              <article className="workspace-card" key={a.id}>
+                <h3>{a.title}</h3>
+                <p>{a.message}</p>
+              </article>
+            ))}
           </section>
         )}
         {event.resultsPublished && event.results.length > 0 && (
-          <section className="section">
-            <div className="container">
-              <SectionLabel>THE IDEAS THAT ROSE TO THE TOP</SectionLabel>
-              <h2>BuildFest 2026 results.</h2>
-              <div className="results-list">
-                {event.results.map((r) => (
-                  <div key={r.teamName}>
-                    <span>#{r.place}</span>
-                    <div>
-                      <h3>{r.teamName}</h3>
-                      <p>{r.projectTitle}</p>
-                    </div>
-                    <strong>
-                      {r.points}
-                      <small>/100</small>
-                    </strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-        <section id="faq" className="section faq-section">
-          <div className="container faq-layout">
-            <Reveal>
-              <SectionLabel number="04">A FEW THINGS TO KNOW</SectionLabel>
-              <h2>
-                Curious?
-                <br />
-                <span className="soft-text">Good.</span>
-              </h2>
-              <p className="section-intro">The answers before the adventure.</p>
-              {event.supportEmail ? (
-                <a className="text-link" href={`mailto:${event.supportEmail}`}>
-                  Ask the organizers <ArrowUpRight size={15} />
-                </a>
-              ) : (
-                <p className="support-pending">
-                  Our organizers will contact
-                  <br />
-                  team leaders on WhatsApp.
+          <section className="container leap-section">
+            <SectionLabel>LEAP 3 RESULTS</SectionLabel>
+            {event.results.map((r) => (
+              <div className="workspace-card" key={r.teamName}>
+                <h3>
+                  #{r.place} · {r.teamName}
+                </h3>
+                <p>
+                  {r.projectTitle} · {r.points} points
                 </p>
-              )}
-            </Reveal>
-            <Reveal className="faq-list">
-              {faqs.map(([q, a], i) => (
-                <details key={q} open={i === 0}>
-                  <summary>
-                    <span>{q}</span>
-                    <ChevronDown size={17} />
-                  </summary>
-                  <p>{a}</p>
-                </details>
-              ))}
-            </Reveal>
-          </div>
-        </section>
-        <section className="final-cta">
-          <div className="container">
-            <Reveal>
-              <div className="cta-kicker">
-                <span className="pulse-dot" /> A SMALL TEAM. AN EXTRAORDINARY
-                START.
               </div>
-              <h2>
-                The future is
-                <br />
-                <span className="gradient-text">a team sport.</span>
-                <span className="cta-star">✳</span>
-              </h2>
-              <div className="final-cta-bottom">
-                <div>
-                  <p>Your next chapter starts with one idea.</p>
-                  <span>
-                    1–3 members <i /> PKR 1,500 per team <i /> AI encouraged
-                  </span>
-                </div>
-                <Link href="/register" className="button button-primary">
-                  Let’s build something <ArrowUpRight size={20} />
-                </Link>
-              </div>
-              <div className="cta-status">
-                <span className={`pill-dot ${state.open ? "green-dot" : ""}`} />
-                {state.open
-                  ? `Register before ${formatDate(event.registrationDeadline)}`
-                  : state.reason}
-              </div>
-            </Reveal>
-          </div>
-        </section>
-        <section className="trust-band">
-          <div className="container trust-band-inner">
-            <span>
-              <ShieldCheck size={19} /> Simple registration. Personal follow-up.
-            </span>
-            <Link href="/privacy">
-              Privacy & refund information <ArrowUpRight size={14} />
-            </Link>
-            <a
-              href="https://wa.me/"
-              onClick={(e) => {
-                e.currentTarget.href = `https://wa.me/?text=${encodeURIComponent(`One idea. Three minds. Endless possibilities. Join me at BuildFest 2026 — GUtech’s innovation challenge. ${window.location.origin}`)}`;
-              }}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MessageCircle size={16} /> Bring a friend{" "}
-              <ArrowUpRight size={14} />
-            </a>
-          </div>
-        </section>
-        {event.confirmedTeams !== null && event.confirmedTeams > 0 && (
-          <div className="container real-team-count">
-            <Users size={14} />
-            {event.confirmedTeams}{" "}
-            {event.confirmedTeams === 1 ? "team has" : "teams have"} an
-            organizer-confirmed registration. Make your idea the next one.
-          </div>
+            ))}
+          </section>
         )}
       </main>
       <Footer />
-      <Link href="/register" className="mobile-registration">
-        <span>
-          PKR 1,500 <small>/ team</small>
-        </span>
-        <strong>
-          Register your team <ArrowUpRight size={17} />
-        </strong>
-      </Link>
     </>
   );
 }

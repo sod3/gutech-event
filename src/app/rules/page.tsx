@@ -1,8 +1,7 @@
 import { Header, Footer, SectionLabel } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { publicEvent } from "@/lib/event";
-import { CRITERIA } from "@/lib/types";
-export const metadata = { title: "Event rules" };
+export const metadata = { title: "Application guide" };
 export const dynamic = "force-dynamic";
 export default async function Page() {
   const event = await publicEvent();
@@ -10,99 +9,88 @@ export default async function Page() {
     <>
       <Header />
       <main id="top" className="container content-page">
-        <SectionLabel>PLAY FAIR. BUILD BOLD.</SectionLabel>
+        <SectionLabel>YOUR IDEA DESERVES A STAGE</SectionLabel>
         <h1>
-          The BuildFest
-          <br />
-          <span className="gradient-text">ground rules.</span>
+          The LEAP 3<br />
+          <span className="gradient-text">application guide.</span>
         </h1>
         <p>
-          BuildFest 2026 is an innovation and entrepreneurship hackathon
-          organized by the GUtech Entrepreneurship Society, powered by ArtDera,
-          at GUtech University, Pakistan.
+          LEAP 3 is GUtech University’s Official Startup Pitching Event,
+          organized by the Entrepreneurship Society. Participants present an
+          existing startup idea, prototype, MVP, or growing business to a panel
+          of judges.
         </p>
-        <h2>Teams & eligibility</h2>
+        <h2>Who can apply</h2>
         <ul>
           <li>
-            Students from all departments are welcome. Advanced coding
-            experience is not required.
+            A strong startup idea is eligible. You do not need a working
+            product, prototype, or MVP.
           </li>
           <li>
-            Teams consist of 1–3 participants, including the leader. Each
-            participant may register with one team.
+            Choose your current stage: Idea Only, Prototype, MVP, or Existing or
+            Growing Business.
           </li>
           <li>
-            PKR 1,500 covers the entire team. There are no per-member fees or
-            hidden charges.
+            Solo founders and teams are welcome. There is no limit on team
+            members. Each participant should belong to one application.
           </li>
-          <li>
-            Registration is received when your team details are saved. An
-            organizer will contact the team leader on WhatsApp and confirm your
-            place manually after the next steps are complete.
-          </li>
+          <li>Registration is completely FREE.</li>
         </ul>
-        <h2>Your idea & your tools</h2>
+        <h2>What to submit</h2>
         <ul>
           <li>
-            Identify a real-world problem, research it, develop an original
-            solution, and present an MVP or prototype.
+            Your startup name, stage, and a description explaining the idea,
+            problem, solution, and target customers.
           </li>
           <li>
-            AI, no-code, design tools, and coding frameworks are allowed and
-            encouraged.
+            A required PDF pitch deck, smaller than 3 MB, explaining your
+            startup for organizer review.
           </li>
           <li>
-            Declare AI assistance, understand how your product works, and be
-            ready to explain your approach.
+            Your team leader’s full name, email, WhatsApp number, and university
+            or organization.
           </li>
-          <li>
-            Credit third-party research, code, assets, and tools. Respect
-            intellectual property and avoid plagiarism.
-          </li>
-          <li>
-            Use only data and assets you have permission to use. Treat
-            teammates, judges, and other participants respectfully.
-          </li>
+          <li>The full name and email of every additional team member.</li>
         </ul>
-        <h2>Judging · 100 points</h2>
-        <ul>
-          {CRITERIA.map((c) => (
-            <li key={c.name}>
-              {c.name}: {c.points} points
-            </li>
-          ))}
-        </ul>
+        <h2>Selection process</h2>
         <p>
-          Complexity is not the goal. Genuine problem-solving, creativity,
-          research, and practical impact carry the most weight.
-        </p>
-        <h2>Submissions & deadlines</h2>
-        <p>
-          Event date: {formatDate(event.eventDate, true)}.
-          <br />
-          Registration closes: {formatDate(event.registrationDeadline)}.
-          Signups close automatically at this deadline.
+          Submit Your Startup → Application Review → Shortlisting → Pitch at
+          LEAP 3
         </p>
         <p>
-          The official schedule and deadlines are published by the organizers.
-          Team leaders can save and edit their project, problem statement, pitch
-          deck, and prototype links until the configured submission deadline.
-          Select “Final submission” to confirm the version for judging.
+          Organizers review every submitted startup idea and PDF pitch deck.
+          Only shortlisted startups will be invited to pitch. Submitting an
+          application does not guarantee a pitching slot. Our team will contact
+          your leader if shortlisted; you can also check your status in the
+          application dashboard.
         </p>
-        <h2>Prizes & results</h2>
+        <h2>The event format</h2>
         <p>
-          Only verified prizes and confirmed mentors or judges are listed on the
-          official site. Results are published after the assigned judges have
-          completed scoring and organizers approve publication.
+          Come ready to pitch your existing startup idea or business. No time is
+          allocated to build projects during the event. Present your current
+          stage honestly, credit sources, respect intellectual property, and
+          treat other participants and judges respectfully.
         </p>
-        <h2>Payments & refunds</h2>
+        <h2>Opportunities</h2>
         <p>
-          Our organizing team will contact you on WhatsApp with further details,
-          including registration fee payment instructions. Review the
-          organizer’s{" "}
-          <a href="/privacy">refund policy and privacy information</a> before
-          paying. Contact the organizing team directly about payment or refund
-          questions.
+          Explore Internships, Startup Incubation, PhD Professor Mentorship,
+          Startup Growth Support, and Networking. Opportunities depend on
+          suitability and partner selection.
+        </p>
+        <h2>Judges</h2>
+        <p>Announcing Soon.</p>
+        <h2>Dates & support</h2>
+        <p>
+          Event date: {formatDate(event.eventDate, true)}.<br />
+          Applications close: {formatDate(event.registrationDeadline)}.
+          Applications close automatically at this deadline.
+        </p>
+        <p>
+          {event.supportEmail ? (
+            <a href={`mailto:${event.supportEmail}`}>{event.supportEmail}</a>
+          ) : (
+            "Official support details will be published by the Entrepreneurship Society."
+          )}
         </p>
       </main>
       <Footer />

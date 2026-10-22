@@ -1,292 +1,233 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  BrainCircuit,
+  ArrowUpRight,
   Check,
-  Clock3,
-  LockKeyhole,
-  Save,
+  FileText,
+  Plus,
   ShieldCheck,
-  Sparkles,
-  User,
-  Users,
+  Trash2,
+  Upload,
 } from "lucide-react";
-import { z } from "zod";
-import {
-  emailSchema,
-  teamDetailsSchema,
-  registrationSchema,
-} from "@/lib/validation";
-import { ORGANIZER_FOLLOW_UP } from "@/lib/registration";
+import { registrationSchema } from "@/lib/validation";
+import { STARTUP_STAGES } from "@/lib/registration";
+import { registrationState, type PublicEvent } from "@/lib/types";
+import { api, Brand, FormMessage, LoadingButton, formatDate } from "./ui";
 import { usePublicEvent } from "./use-public-event";
-import { registrationState, type Member, type PublicEvent } from "@/lib/types";
-import {
-  api,
-  FormMessage,
-  LoadingButton,
-  SectionLabel,
-  formatDate,
-} from "./ui";
-
 type Draft = {
-  teamName: string;
+  startupName: string;
+  startupStage: string;
+  startupDescription: string;
   leaderName: string;
   email: string;
   whatsapp: string;
   institution: string;
-  department: string;
-  teamSize: number;
-  members: Member[];
+  password: string;
+  members: { name: string; email: string }[];
   requestId: string;
   whatsappConsent: boolean;
-  password: string;
   agreement: boolean;
 };
 const empty: Draft = {
-  teamName: "",
+  startupName: "",
+  startupStage: "",
+  startupDescription: "",
   leaderName: "",
   email: "",
   whatsapp: "",
   institution: "",
-  department: "",
-  teamSize: 1,
+  password: "",
   members: [],
   requestId: "",
   whatsappConsent: false,
-  password: "",
   agreement: false,
 };
-const detailSchema = teamDetailsSchema;
-const memberSchema = z.object({
-  members: z
-    .array(
-      z.object({
-        name: z.string().trim().min(2, "Enter a full name.").max(100),
-        email: emailSchema,
-      }),
-    )
-    .max(2),
-});
+const draftKey = "leap3-application-draft";
 export function Registration({ event: initialEvent }: { event: PublicEvent }) {
-  const event = usePublicEvent(initialEvent);
-  const router = useRouter();
-  const [data, setData] = useState<Draft>(empty);
-  const [step, setStep] = useState(0);
+  const event = usePublicEvent(initialEvent),
+    state = registrationState(event),
+    router = useRouter();
+  const [data, setData] = useState<Draft>(empty),
+    [step, setStep] = useState(0),
+    [deck, setDeck] = useState<File | null>(null),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [ready, setReady] = useState(false);
   const [fields, setFields] = useState<Record<string, string>>({});
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const submitting = useRef(false);
-  const completed = useRef(false);
-  const [ready, setReady] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const state = event.available
-    ? registrationState(event)
-    : {
-        open: false,
-        reason:
-          "Registration is temporarily unavailable. Your draft stays saved on this device. Please try again shortly.",
-      };
+  const locked = useRef(false),
+    completed = useRef(false),
+    formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    const hydrationTimer = setTimeout(() => {
-      let requestId = crypto.randomUUID();
+    const t = setTimeout(() => {
+      const next = { ...empty, requestId: crypto.randomUUID() };
       try {
-        const stored = JSON.parse(
-          localStorage.getItem("buildfest-registration-draft") || "null",
-        );
-        if (
-          stored &&
-          typeof stored.teamName === "string" &&
-          Array.isArray(stored.members)
-        ) {
+        const stored = JSON.parse(localStorage.getItem(draftKey) || "null");
+        if (stored && typeof stored === "object") {
+          for (const key of [
+            "startupName",
+            "startupStage",
+            "startupDescription",
+            "leaderName",
+            "email",
+            "whatsapp",
+            "institution",
+          ] as const)
+            if (typeof stored[key] === "string") next[key] = stored[key];
+          if (Array.isArray(stored.members))
+            next.members = stored.members.filter(
+              (m: { name?: unknown; email?: unknown }) =>
+                typeof m?.name === "string" && typeof m?.email === "string",
+            );
           if (
             typeof stored.requestId === "string" &&
-            z.string().uuid().safeParse(stored.requestId).success
+            /^[0-9a-f-]{36}$/i.test(stored.requestId)
           )
-            requestId = stored.requestId;
-          setData({
-            ...empty,
-            ...Object.fromEntries(
-              [
-                "teamName",
-                "leaderName",
-                "email",
-                "whatsapp",
-                "institution",
-                "department",
-              ].map((key) => [
-                key,
-                typeof stored[key] === "string" ? stored[key] : "",
-              ]),
-            ),
-            password: "",
-            agreement: false,
-            whatsappConsent: false,
-            requestId,
-            teamSize: [1, 2, 3].includes(stored.teamSize) ? stored.teamSize : 1,
-            members: Array.from(
-              {
-                length:
-                  ([1, 2, 3].includes(stored.teamSize) ? stored.teamSize : 1) -
-                  1,
-              },
-              (_, i) => ({
-                name:
-                  typeof stored.members[i]?.name === "string"
-                    ? stored.members[i].name
-                    : "",
-                email:
-                  typeof stored.members[i]?.email === "string"
-                    ? stored.members[i].email
-                    : "",
-              }),
-            ),
-          });
-        } else setData({ ...empty, requestId });
-      } catch {
-        setData({ ...empty, requestId });
-      }
+            next.requestId = stored.requestId;
+        }
+      } catch {}
+      setData(next);
       setReady(true);
     }, 0);
-    return () => clearTimeout(hydrationTimer);
+    return () => clearTimeout(t);
   }, []);
   useEffect(() => {
     if (!ready || completed.current) return;
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       const { password, agreement, whatsappConsent, ...draft } = data;
       void password;
       void agreement;
       void whatsappConsent;
       try {
-        if (completed.current) return;
-        localStorage.setItem(
-          "buildfest-registration-draft",
-          JSON.stringify(draft),
-        );
+        if (!completed.current)
+          localStorage.setItem(draftKey, JSON.stringify(draft));
       } catch {}
     }, 350);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [data, ready]);
   const change = (key: keyof Draft, value: Draft[keyof Draft]) => {
-    setData((prev) => ({ ...prev, [key]: value }));
-    setFields((prev) => ({ ...prev, [key]: "" }));
+    setData((p) => ({ ...p, [key]: value }));
     setError("");
+    setFields((p) => ({ ...p, [key]: "" }));
   };
-  const errors = (issues: z.core.$ZodIssue[]) => {
-    setFields(
-      Object.fromEntries(issues.map((i) => [i.path.join("."), i.message])),
-    );
-    setError("Please check the highlighted details.");
-    requestAnimationFrame(() =>
-      formRef.current
-        ?.querySelector<HTMLInputElement>("[aria-invalid='true']")
-        ?.focus(),
-    );
-  };
-  const advance = () => {
-    setError("");
-    setFields({});
-    if (step === 0) {
-      const result = detailSchema.safeParse(data);
-      if (!result.success) {
-        errors(result.error.issues);
-        return;
+  const validate = (all = false) => {
+    const result = registrationSchema.safeParse({
+      ...data,
+      ...(!all ? { whatsappConsent: true, agreement: true } : {}),
+      teamSize: data.members.length + 1,
+    });
+    if (!result.success) {
+      const issues = result.error.issues.filter(
+        (i) =>
+          all ||
+          (step === 0
+            ? ["startupName", "startupStage", "startupDescription"]
+            : step === 1
+              ? [
+                  "leaderName",
+                  "email",
+                  "password",
+                  "whatsapp",
+                  "institution",
+                  "members",
+                ]
+              : []
+          ).includes(String(i.path[0])),
+      );
+      if (issues.length) {
+        setFields(
+          Object.fromEntries(issues.map((i) => [i.path.join("."), i.message])),
+        );
+        setError("Please check the highlighted details.");
+        requestAnimationFrame(() =>
+          formRef.current
+            ?.querySelector<HTMLElement>("[aria-invalid='true']")
+            ?.focus(),
+        );
+        return false;
       }
     }
-    if (step === 1) {
-      const result = memberSchema.safeParse(data);
-      if (!result.success) {
-        errors(result.error.issues);
-        return;
-      }
-      const emails = [
-        data.email.toLowerCase().trim(),
-        ...data.members.map((m) => m.email.toLowerCase().trim()),
-      ];
-      if (new Set(emails).size !== emails.length) {
-        setError("Every participant needs a different email address.");
-        return;
-      }
+    if ((step === 0 || all) && !deck) {
+      setFields((p) => ({
+        ...p,
+        deck: "Upload your PDF pitch deck to apply.",
+      }));
+      setError("A PDF pitch deck is required for review.");
+      return false;
     }
-    setStep(step + 1);
+    return true;
   };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (submitting.current) return;
-    if (step < 2) {
-      advance();
-      return;
-    }
-    if (!ready || !state.open) {
-      setError(state.reason || "Please wait while your draft loads.");
-      return;
-    }
-    const parsed = registrationSchema.safeParse(data);
-    if (!parsed.success) {
-      errors(parsed.error.issues);
-      return;
-    }
-    try {
-      const { password, agreement, whatsappConsent, ...draft } = data;
-      void password;
-      void agreement;
-      void whatsappConsent;
-      localStorage.setItem(
-        "buildfest-registration-draft",
-        JSON.stringify(draft),
-      );
-    } catch {}
-    submitting.current = true;
-    setBusy(true);
+    if (locked.current) return;
     setError("");
+    setFields({});
+    if (step < 2) {
+      if (validate()) {
+        setStep(step + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      return;
+    }
+    if (!validate(true) || !deck) return;
+    if (!state.open) {
+      setError(state.reason);
+      return;
+    }
+    locked.current = true;
+    setBusy(true);
     try {
-      const form = new FormData();
-      form.append("data", JSON.stringify(parsed.data));
-      const result = await api<{ redirect: string }>(
-        "/api/register",
-        "POST",
-        form,
+      const body = new FormData();
+      body.set(
+        "data",
+        JSON.stringify({ ...data, teamSize: data.members.length + 1 }),
       );
+      body.set("deck", deck);
+      const r = await api<{ redirect: string }>("/api/register", "POST", body);
       completed.current = true;
       try {
-        localStorage.removeItem("buildfest-registration-draft");
+        localStorage.removeItem(draftKey);
       } catch {}
-      router.push(result.redirect);
+      router.push(r.redirect);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Please try again.");
+      setError(
+        e instanceof Error ? e.message : "Unable to submit. Please try again.",
+      );
     } finally {
-      if (!completed.current) {
-        submitting.current = false;
-        setBusy(false);
-      }
+      setBusy(false);
+      locked.current = false;
     }
   };
   const field = (
-    key: keyof Draft,
+    key:
+      | "startupName"
+      | "leaderName"
+      | "email"
+      | "whatsapp"
+      | "institution"
+      | "password",
     label: string,
     placeholder: string,
     type = "text",
-    full = false,
-    hint?: string,
   ) => (
-    <div className={`field ${full ? "field-full" : "field-mobile-full"}`}>
-      <label htmlFor={key}>{label}</label>
+    <div className="field">
+      <label htmlFor={key}>
+        {label} <span>*</span>
+      </label>
       <input
         id={key}
-        name={key}
-        value={String(data[key])}
-        onChange={(e) => change(key, e.target.value)}
         type={type}
+        value={data[key]}
         placeholder={placeholder}
         autoComplete={
-          key === "email"
-            ? "email"
-            : key === "password"
-              ? "new-password"
+          key === "password"
+            ? "new-password"
+            : key === "email"
+              ? "email"
               : key === "leaderName"
                 ? "name"
                 : key === "whatsapp"
@@ -295,401 +236,499 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                     ? "organization"
                     : "off"
         }
-        aria-invalid={!!fields[key]}
-        aria-describedby={
-          fields[key] ? `${key}-error` : hint ? `${key}-hint` : undefined
-        }
-        required={key === "institution"}
         maxLength={
           key === "password"
-            ? 128
-            : key === "email"
-              ? 254
-              : key === "institution"
-                ? 160
-                : 100
+            ? 72
+            : key === "startupName"
+              ? 80
+              : key === "email"
+                ? 254
+                : key === "institution"
+                  ? 160
+                  : key === "whatsapp"
+                    ? 24
+                    : 100
         }
+        required
+        aria-invalid={!!fields[key]}
+        aria-describedby={fields[key] ? `${key}-error` : undefined}
+        onChange={(e) => change(key, e.target.value)}
       />
       {fields[key] && (
         <small className="field-error" id={`${key}-error`}>
           {fields[key]}
         </small>
       )}
-      {hint && <small id={`${key}-hint`}>{hint}</small>}
     </div>
   );
   return (
-    <div className="container registration-layout">
-      <aside className="registration-aside">
-        <SectionLabel>YOUR FIRST STEP INTO WHAT’S NEXT</SectionLabel>
-        <h1>
-          Your idea
-          <br /> <span className="gradient-text">starts here.</span>
-        </h1>
-        <p>
-          A small team, a big question, and the space to build something that
-          matters.
-        </p>
-        <div className="registration-facts">
-          <div>
-            <Users size={18} />
-            1–3 members per team
-          </div>
-          <div>
-            <BrainCircuit size={18} />
-            AI tools welcome
-          </div>
-          <div>
-            <Sparkles size={18} />
-            Every department. Every idea.
-          </div>
-        </div>
-        <div className="registration-summary">
-          <div>
-            <small>ONE TEAM. ONE SIMPLE FEE.</small>
-            <strong>PKR 1,500</strong>
-          </div>
-          <p>
-            The fee covers your entire team.
+    <main className="leap-registration">
+      <aside className="leap-registration-aside">
+        <Brand />
+        <div>
+          <span className="leap-eyebrow">LEAP 3 · STARTUP APPLICATION</span>
+          <h1>
+            Your next chapter
             <br />
-            No hidden charges. No per-member fees.
+            starts with
+            <br />
+            <span>one pitch.</span>
+          </h1>
+          <p>
+            GUtech University’s Official Startup Pitching Event, organized by
+            the Entrepreneurship Society.
           </p>
-        </div>
-        <div className="registration-summary registration-schedule">
-          <div>
-            <small>EVENT DATE</small>
-            <Clock3 size={16} color="#9baccc" />
+          <ul>
+            <li>
+              <Check size={17} /> Registration is completely FREE
+            </li>
+            <li>
+              <Check size={17} /> A strong idea is enough to apply
+            </li>
+            <li>
+              <Check size={17} /> No limit on team members
+            </li>
+            <li>
+              <Check size={17} /> PDF pitch deck required
+            </li>
+          </ul>
+          <div className="leap-registration-note">
+            <ShieldCheck size={21} />
+            <p>
+              Every application is reviewed. Only shortlisted startups are
+              invited to pitch. No project-building time is provided during the
+              event.
+            </p>
           </div>
-          <p>{formatDate(event.eventDate, true)}</p>
-          <p>GUtech University, Pakistan</p>
-          <p>Registration closes: {formatDate(event.registrationDeadline)}</p>
         </div>
+        <Link href="/" className="text-link">
+          <ArrowLeft size={14} />
+          Back to event
+        </Link>
       </aside>
-      <form
-        ref={formRef}
-        className="registration-form"
-        noValidate
-        onSubmit={submit}
-      >
-        <div className="form-stepper">
-          {["Team", "Members", "Review & Submit"].map((s, i) => (
-            <div
-              className={`form-step ${i === step ? "is-current" : i < step ? "is-complete" : ""}`}
-              key={s}
-            >
-              <span>{i < step ? <Check size={11} /> : i + 1}</span>
-              {s}
-            </div>
-          ))}
+      <section className="leap-registration-main">
+        <div className="leap-registration-top">
+          <span>ALREADY APPLIED?</span>
+          <Link href="/login">
+            Sign in <ArrowUpRight size={14} />
+          </Link>
         </div>
-        <div className="form-body" key={step}>
-          <h2 className="form-title">
-            {
-              [
-                "Meet your next big thing.",
-                "Great ideas love good company.",
-                "Ready for what’s next?",
-              ][step]
-            }
-          </h2>
-          <p className="form-subtitle">
-            {
-              [
-                "Tell us a little about the team behind the idea.",
-                "You can go solo or build with up to two teammates.",
-                "Review your details and we’ll take it from here.",
-              ][step]
-            }
-          </p>
-          {step === 0 && (
-            <div className="form-grid">
-              {field(
-                "teamName",
-                "Team name",
-                "What should we call your team?",
-                "text",
-                true,
-              )}
-              {field("leaderName", "Team leader’s full name", "Your full name")}
-              {field(
-                "email",
-                "Email address",
-                "you@example.com",
-                "email",
-                false,
-                "Any valid email works. No university email needed.",
-              )}
-              {field(
-                "institution",
-                "University / College",
-                "Enter your university or college",
-                "text",
-                true,
-              )}
-              {field("whatsapp", "WhatsApp number", "+92 3XX XXXXXXX", "tel")}
-              {field(
-                "department",
-                "Department / program",
-                "e.g. Business Administration",
-              )}
-              <div className="field field-full">
-                <label id="team-size-label">
-                  Team size <span>Including you</span>
-                </label>
-                <div
-                  className="team-size-options"
-                  role="group"
-                  aria-labelledby="team-size-label"
-                >
-                  {[1, 2, 3].map((n) => (
+        <div className="leap-form-wrap">
+          <ol className="leap-form-steps">
+            {["Your startup", "Your team", "Review & submit"].map((s, i) => (
+              <li key={s} className={step >= i ? "active" : ""}>
+                <span>{step > i ? <Check size={14} /> : i + 1}</span>
+                {s}
+              </li>
+            ))}
+          </ol>
+          <div className="leap-form-heading">
+            <span>STEP 0{step + 1} / 03</span>
+            <h2>
+              {
+                [
+                  "Tell us about your startup.",
+                  "Meet the people behind it.",
+                  "Ready for your next leap?",
+                ][step]
+              }
+            </h2>
+            <p>
+              {
+                [
+                  "Idea, prototype, MVP, or growing business — every stage is welcome.",
+                  "Start with the team leader. Add as many teammates as you need.",
+                  "Check your application before sending it to the organizers.",
+                ][step]
+              }
+            </p>
+          </div>
+          {!state.open && (
+            <div className="notice notice-warning">
+              <p>
+                {event.available
+                  ? state.reason
+                  : "We’re having trouble connecting. Your draft stays in this browser. Please try again shortly."}
+              </p>
+            </div>
+          )}
+          <form ref={formRef} onSubmit={submit} noValidate>
+            {step === 0 && (
+              <>
+                <div className="form-grid">
+                  {field("startupName", "Startup Name", "Your startup’s name")}
+                  <div className="field">
+                    <label htmlFor="startupStage">
+                      Startup Stage <span>*</span>
+                    </label>
+                    <select
+                      id="startupStage"
+                      required
+                      value={data.startupStage}
+                      aria-invalid={!!fields.startupStage}
+                      onChange={(e) => change("startupStage", e.target.value)}
+                    >
+                      <option value="">Select your current stage</option>
+                      {STARTUP_STAGES.map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                    {fields.startupStage && (
+                      <small className="field-error">
+                        {fields.startupStage}
+                      </small>
+                    )}
+                  </div>
+                  <div className="field field-full">
+                    <label htmlFor="startupDescription">
+                      Startup Description <span>*</span>
+                    </label>
+                    <textarea
+                      id="startupDescription"
+                      required
+                      rows={6}
+                      maxLength={5000}
+                      value={data.startupDescription}
+                      aria-invalid={!!fields.startupDescription}
+                      placeholder="Explain your startup idea, the problem you’re solving, your solution, and your target customers."
+                      onChange={(e) =>
+                        change("startupDescription", e.target.value)
+                      }
+                    />
+                    <small>
+                      {fields.startupDescription ? (
+                        <span className="field-error">
+                          {fields.startupDescription}
+                        </span>
+                      ) : (
+                        "Be clear about the idea and who it helps. A working product is not required."
+                      )}
+                    </small>
+                  </div>
+                </div>
+                <div className="field leap-deck-field">
+                  <label htmlFor="deck">
+                    Startup Pitch Deck <span>* · PDF, up to 3 MB</span>
+                  </label>
+                  <div className={`leap-upload ${deck ? "has-file" : ""}`}>
+                    <Upload size={26} />
+                    <strong>
+                      {deck ? deck.name : "Choose your PDF pitch deck"}
+                    </strong>
+                    <span>
+                      {deck
+                        ? `${(deck.size / 1000000).toFixed(2)} MB · Click to replace`
+                        : "Organizers will review this deck to shortlist startups."}
+                    </span>
+                    <input
+                      id="deck"
+                      required
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      aria-label="Startup Pitch Deck PDF Upload"
+                      aria-invalid={!!fields.deck}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        if (
+                          !/\.pdf$/i.test(f.name) ||
+                        (f.type && f.type !== "application/pdf") ||
+                          f.size > 3000000 ||
+                          !f.size
+                        ) {
+                          setDeck(null);
+                          setFields((p) => ({
+                            ...p,
+                            deck: "Choose a non-empty PDF smaller than 3 MB.",
+                          }));
+                          e.target.value = "";
+                          return;
+                        }
+                        setDeck(f);
+                        setFields((p) => ({ ...p, deck: "" }));
+                        setError("");
+                      }}
+                    />
+                  </div>
+                  {fields.deck && (
+                    <small className="field-error">{fields.deck}</small>
+                  )}
+                  <small>
+                    Include your idea, problem, solution, target customers, and
+                    team. Files are stored privately. Reselect the PDF if you
+                    return to a saved draft.
+                  </small>
+                </div>
+              </>
+            )}
+            {step === 1 && (
+              <>
+                <h3 className="leap-form-subtitle">Team leader details</h3>
+                <div className="form-grid">
+                  {field("leaderName", "Full name", "Team leader’s full name")}
+                  {field("email", "Email address", "you@example.com", "email")}
+                  {field(
+                    "whatsapp",
+                    "WhatsApp number",
+                    "03001234567 or +923001234567",
+                    "tel",
+                  )}
+                  {field(
+                    "institution",
+                    "University / organization",
+                    "Your university or organization",
+                  )}
+                  {field(
+                    "password",
+                    "Dashboard password",
+                    "At least 12 characters",
+                    "password",
+                  )}
+                </div>
+                <p className="leap-form-help">
+                  Use this email and password to check your application status
+                  later.
+                </p>
+                <div className="leap-members-heading">
+                  <h3>
+                    Team members <span>({data.members.length} additional)</span>
+                  </h3>
+                  <span>No member limit · solo founders welcome</span>
+                </div>
+                {data.members.map((m, i) => (
+                  <div className="leap-member-row" key={i}>
+                    <div className="field">
+                      <label htmlFor={`member-name-${i}`}>
+                        Member {i + 1} · full name *
+                      </label>
+                      <input
+                        id={`member-name-${i}`}
+                        value={m.name}
+                        maxLength={100}
+                        aria-invalid={!!fields[`members.${i}.name`]}
+                        onChange={(e) =>
+                          change(
+                            "members",
+                            data.members.map((v, j) =>
+                              j === i ? { ...v, name: e.target.value } : v,
+                            ),
+                          )
+                        }
+                      />
+                      {fields[`members.${i}.name`] && (
+                        <small className="field-error">
+                          {fields[`members.${i}.name`]}
+                        </small>
+                      )}
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`member-email-${i}`}>
+                        Email address *
+                      </label>
+                      <input
+                        id={`member-email-${i}`}
+                        type="email"
+                        value={m.email}
+                        maxLength={254}
+                        aria-invalid={!!fields[`members.${i}.email`]}
+                        onChange={(e) =>
+                          change(
+                            "members",
+                            data.members.map((v, j) =>
+                              j === i ? { ...v, email: e.target.value } : v,
+                            ),
+                          )
+                        }
+                      />
+                      {fields[`members.${i}.email`] && (
+                        <small className="field-error">
+                          {fields[`members.${i}.email`]}
+                        </small>
+                      )}
+                    </div>
                     <button
                       type="button"
-                      key={n}
-                      className={data.teamSize === n ? "selected" : ""}
-                      aria-pressed={data.teamSize === n}
+                      className="icon-button"
+                      aria-label={`Remove member ${i + 1}`}
                       onClick={() =>
-                        setData((prev) => ({
-                          ...prev,
-                          teamSize: n,
-                          members: Array.from(
-                            { length: n - 1 },
-                            (_, i) =>
-                              prev.members[i] || { name: "", email: "" },
-                          ),
-                        }))
+                        change(
+                          "members",
+                          data.members.filter((_, j) => i !== j),
+                        )
                       }
                     >
-                      <Users size={15} />
-                      {n} {n === 1 ? "member" : "members"}
+                      <Trash2 size={16} />
                     </button>
-                  ))}
-                </div>
-              </div>
-              {field(
-                "password",
-                "Create a dashboard password",
-                "At least 12 characters",
-                "password",
-                true,
-                "Used to securely sign in to your team dashboard. Passwords are never saved in your local draft.",
-              )}
-            </div>
-          )}
-          {step === 1 && (
-            <>
-              <div className="leader-summary">
-                <span className="avatar">
-                  {data.leaderName.slice(0, 1).toUpperCase()}
-                </span>
-                <div>
-                  {data.leaderName}
-                  <small>{data.email}</small>
-                </div>
-                <span>TEAM LEADER</span>
-              </div>
-              {data.teamSize === 1 ? (
-                <div className="solo-state">
-                  <User size={32} />
-                  <h3>One mind. Endless possibilities.</h3>
-                  <p>
-                    You’re all set to build solo.
-                    <br />
-                    You can change your team size in the previous step.
-                  </p>
-                </div>
-              ) : (
-                data.members.map((member, i) => (
-                  <div className="member-card" key={i}>
-                    <h4>TEAM MEMBER 0{i + 2}</h4>
-                    <div className="form-grid">
-                      {(["name", "email"] as const).map((key) => (
-                        <div className="field field-mobile-full" key={key}>
-                          <label htmlFor={`member-${i}-${key}`}>
-                            {key === "name" ? "Full name" : "Email address"}
-                          </label>
-                          <input
-                            id={`member-${i}-${key}`}
-                            type={key === "email" ? "email" : "text"}
-                            placeholder={
-                              key === "name"
-                                ? "Your teammate’s full name"
-                                : "teammate@example.com"
-                            }
-                            value={member[key]}
-                            maxLength={key === "email" ? 254 : 100}
-                            aria-invalid={!!fields[`members.${i}.${key}`]}
-                            onChange={(e) => {
-                              const members = data.members.map((m, j) =>
-                                j === i ? { ...m, [key]: e.target.value } : m,
-                              );
-                              change("members", members);
-                            }}
-                          />
-                          {fields[`members.${i}.${key}`] && (
-                            <small className="field-error">
-                              {fields[`members.${i}.${key}`]}
-                            </small>
-                          )}
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                ))
-              )}
-            </>
-          )}
-          {step === 2 && (
-            <>
-              <div className="review-block">
-                <small>YOUR TEAM</small>
-                <button
-                  type="button"
-                  className="text-link review-edit"
-                  disabled={busy}
-                  onClick={() => setStep(0)}
-                >
-                  Edit team details
-                </button>
-                <h3>{data.teamName}</h3>
-                <p>University / College: {data.institution}</p>
-                <p>
-                  {data.department} · {data.teamSize}{" "}
-                  {data.teamSize === 1 ? "member" : "members"}
-                </p>
-              </div>
-              <div className="review-block">
-                <small>THE PEOPLE BEHIND THE IDEA</small>
-                <button
-                  type="button"
-                  className="text-link review-edit"
-                  disabled={busy}
-                  onClick={() => setStep(1)}
-                >
-                  Edit members
-                </button>
-                <p>
-                  {data.leaderName} — {data.email} (Leader)
-                </p>
-                {data.members.map((m) => (
-                  <p key={m.email}>
-                    {m.name} — {m.email}
-                  </p>
                 ))}
-              </div>
-              <div className="review-block">
-                <small>WHATSAPP CONTACT</small>
-                <p>{data.whatsapp}</p>
-              </div>
-              <div className="review-total">
-                <span>
-                  Total team fee <small>(All {data.teamSize} members)</small>
-                </span>
-                <strong>PKR 1,500</strong>
-              </div>
-              <div className="notice">
-                <ShieldCheck size={18} />
-                <span>{ORGANIZER_FOLLOW_UP}</span>
-              </div>
-              {!state.open && (
-                <div className="notice notice-warning">
-                  <Clock3 size={18} />
-                  <span>{state.reason}</span>
-                </div>
-              )}
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={data.whatsappConsent}
-                  onChange={(e) => change("whatsappConsent", e.target.checked)}
-                  aria-invalid={!!fields.whatsappConsent}
-                />
-                <span>
-                  I consent to being contacted by the BuildFest 2026 organizers
-                  through WhatsApp about registration, payment instructions, and
-                  event details.
-                </span>
-              </label>
-              {fields.whatsappConsent && (
-                <small className="field-error">{fields.whatsappConsent}</small>
-              )}
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={data.agreement}
-                  onChange={(e) => change("agreement", e.target.checked)}
-                />
-                <span>
-                  I have read the{" "}
-                  <Link href="/rules" target="_blank">
-                    event rules
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" target="_blank">
-                    privacy policy
-                  </Link>
-                  , and I have my teammates’ consent to register.
-                </span>
-              </label>
-            </>
-          )}
-          <FormMessage error={error} />
-          <div className="form-navigation">
-            {step > 0 ? (
-              <button
-                type="button"
-                className="button button-quiet"
-                disabled={busy}
-                onClick={() => {
-                  setStep(step - 1);
-                  setError("");
-                  setFields({});
-                }}
-              >
-                <ArrowLeft size={14} />
-                Back
-              </button>
-            ) : (
-              <span className="draft-note">
-                <Save size={11} />
-                Draft saved on this device
-              </span>
+                {fields.members && (
+                  <p className="field-error">{fields.members}</p>
+                )}
+                <button
+                  type="button"
+                  className="button button-secondary button-small"
+                  onClick={() =>
+                    change("members", [
+                      ...data.members,
+                      { name: "", email: "" },
+                    ])
+                  }
+                >
+                  <Plus size={16} />
+                  Add team member
+                </button>
+              </>
             )}
-            <LoadingButton
-              busy={busy}
-              type="submit"
-              disabled={!ready || (step === 2 && !state.open)}
+            {step === 2 && (
+              <>
+                <div className="leap-review">
+                  <div>
+                    <h3>{data.startupName}</h3>
+                    <span className="leap-review-stage">
+                      {data.startupStage}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={() => setStep(0)}
+                    >
+                      Edit startup
+                    </button>
+                  </div>
+                  <p className="leap-description">{data.startupDescription}</p>
+                  <p>
+                    <FileText size={17} />
+                    {deck?.name || "PDF required — return to step 1"}
+                  </p>
+                  <hr />
+                  <div>
+                    <h3>Team leader</h3>
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={() => setStep(1)}
+                    >
+                      Edit team
+                    </button>
+                  </div>
+                  <p>
+                    {data.leaderName}
+                    <br />
+                    {data.email} · {data.whatsapp}
+                    <br />
+                    {data.institution}
+                  </p>
+                  {data.members.length > 0 && (
+                    <>
+                      <h3>Team members</h3>
+                      {data.members.map((m, i) => (
+                        <p key={i}>
+                          {m.name} · {m.email}
+                        </p>
+                      ))}
+                    </>
+                  )}
+                  <div className="leap-free-review">
+                    <span>Registration</span>
+                    <strong>Completely FREE</strong>
+                  </div>
+                </div>
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={data.whatsappConsent}
+                    onChange={(e) =>
+                      change("whatsappConsent", e.target.checked)
+                    }
+                  />
+                  <span>
+                    I consent to the LEAP 3 organizers contacting me on WhatsApp
+                    about my application and shortlisting.
+                  </span>
+                </label>
+                {fields.whatsappConsent && (
+                  <p className="field-error">{fields.whatsappConsent}</p>
+                )}
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={data.agreement}
+                    onChange={(e) => change("agreement", e.target.checked)}
+                  />
+                  <span>
+                    I agree to the{" "}
+                    <Link href="/rules" target="_blank">
+                      application guidelines
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" target="_blank">
+                      privacy policy
+                    </Link>
+                    . I understand that only shortlisted startups will be
+                    invited to pitch.
+                  </span>
+                </label>
+                {fields.agreement && (
+                  <p className="field-error">{fields.agreement}</p>
+                )}
+              </>
+            )}
+            <FormMessage error={error} />
+            <div className="leap-form-actions">
+              {step > 0 ? (
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    setStep(step - 1);
+                    setError("");
+                  }}
+                >
+                  <ArrowLeft size={15} />
+                  Back
+                </button>
+              ) : (
+                <span />
+              )}
+              <LoadingButton
+                type="submit"
+                busy={busy}
+                disabled={!ready || (step === 2 && !state.open)}
+              >
+                {step === 2 ? "Submit your startup" : "Continue"}
+                <ArrowRight size={16} />
+              </LoadingButton>
+            </div>
+          </form>
+          <div className="leap-draft-note">
+            <span>
+              Details are saved in this browser. Passwords and PDFs are
+              excluded.
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem(draftKey);
+                } catch {}
+                setData({ ...empty, requestId: crypto.randomUUID() });
+                setDeck(null);
+                setStep(0);
+                setFields({});
+                setError("");
+              }}
             >
-              {step === 2 ? "Complete Registration" : "Continue"}
-              <ArrowRight size={15} />
-            </LoadingButton>
+              Clear saved draft
+            </button>
           </div>
+          {event.registrationDeadline && (
+            <p className="leap-form-help">
+              Applications close {formatDate(event.registrationDeadline)}.
+            </p>
+          )}
         </div>
-        <div className="form-bottom">
-          <span>
-            <LockKeyhole
-              size={10}
-              style={{ display: "inline", marginRight: 4 }}
-            />
-            Your details stay private.
-          </span>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              try {
-                localStorage.removeItem("buildfest-registration-draft");
-              } catch {}
-              setData({ ...empty, requestId: crypto.randomUUID() });
-              setStep(0);
-              setError("");
-            }}
-            style={{ fontSize: 12, color: "var(--foreground)" }}
-          >
-            Clear saved draft
-          </button>
-          <Link href="/login">Already registered? Sign in ↗</Link>
-        </div>
-      </form>
-    </div>
+      </section>
+    </main>
   );
 }

@@ -8,7 +8,6 @@ import {
   type SafeTeam,
   type TeamDoc,
 } from "./types";
-
 export async function getSettings(): Promise<EventSettings> {
   const doc = await (await collections()).settings.findOne({ _id: "event" });
   if (!doc) return { ...DEFAULT_SETTINGS };
@@ -79,6 +78,9 @@ export function safeTeam(team: TeamDoc, includeInvite = false): SafeTeam {
     institution: team.institution,
     department: team.department,
     registrationStatus: registrationStatus(team),
+    startupStage: team.startupStage,
+    startupDescription: team.startupDescription,
+    applicationDeckFileId: team.applicationDeckFileId,
     payment: {
       status: team.payment.status,
       methodId: team.payment.methodId,
