@@ -340,6 +340,24 @@ try {
     "official event settings persist",
     (await admin("/api/admin/settings", "PUT", settings)).status === 200,
   );
+  check(
+    "public API uses the saved registration deadline",
+    (await guest("/api/event")).data.registrationDeadline ===
+      settings.registrationDeadline,
+  );
+  const displayedDeadline =
+    new Intl.DateTimeFormat("en-PK", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Karachi",
+    }).format(new Date(settings.registrationDeadline)) + " PKT";
+  for (const page of ["/", "/register", "/rules"]) {
+    const response = await guest(page);
+    check(
+      `${page} displays the saved registration deadline`,
+      response.status === 200 && response.data.includes(displayedDeadline),
+    );
+  }
   const legacyBefore = await db.collection("teams").findOne({ _id: legacyId });
   const legacy = (await admin("/api/admin")).data.teams.find(
     (t) => t.id === legacyId.toString(),

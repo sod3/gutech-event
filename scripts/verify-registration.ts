@@ -129,13 +129,23 @@ try {
   for (const [now, expectedOpen] of [
     [new Date("2026-10-22T23:59:59+05:00").getTime(), true],
     [new Date("2026-10-30T00:00:00+05:00").getTime(), true],
+    [new Date("2026-10-31T00:00:00+05:00").getTime(), true],
+    [new Date("2026-11-09T12:00:00+05:00").getTime(), true],
+    [new Date("2026-12-15T00:00:00+05:00").getTime(), true],
+    [new Date("2026-12-15T23:59:58+05:00").getTime(), true],
     [deadline - 1, true],
     [deadline, false],
-    [new Date("2026-10-31T00:00:00+05:00").getTime(), false],
+    [new Date("2026-12-15T18:59:59Z").getTime(), false],
+    [new Date("2026-12-16T00:00:00+05:00").getTime(), false],
   ] as const) {
     Date.now = () => now;
     assert.equal(registrationState(schedule).open, expectedOpen);
   }
+  Date.now = () => deadline - 1;
+  assert.equal(
+    registrationState({ ...schedule, registrationOpen: false }).open,
+    false,
+  );
 } finally {
   Date.now = originalNow;
 }
@@ -143,7 +153,7 @@ assert.match(formatDate(schedule.eventDate, true), /30.*Oct.*2026/);
 assert.doesNotMatch(formatDate(schedule.eventDate, true), /AM|PM|PKT|:/i);
 assert.match(
   formatDate(schedule.registrationDeadline),
-  /30.*Oct.*2026.*11:59.*pm.*PKT/i,
+  /15.*Dec.*2026.*11:59.*pm.*PKT/i,
 );
 console.log(
   "PASS startup fields, idea-only eligibility, 21-member teams, legacy status mapping, WhatsApp formats and deadline boundaries.",

@@ -32,6 +32,8 @@ Legacy new/contacted/awaiting-confirmation statuses display as Pending. Confirme
 
 Configure dates, support contacts, and the registration deadline, then enable registration. Applications close automatically at the deadline. Existing dates and organizer access configuration remain intact. Times use Pakistan Standard Time. Judges display Announcing Soon.
 
+The LEAP 3 application deadline is extended to **15 December 2026, 11:59 PM PKT** (`2026-12-15T23:59:59+05:00`). The saved organizer settings control the registration API, landing page, application form, and rules page. Existing deployments must update the saved registration deadline and keep registration enabled; changing the code default alone does not replace saved settings.
+
 The existing private owner configuration, trusted `npm run setup:admin` provisioning, SMTP outbox, validation, MongoDB policies, private file access, session authentication, rate limiting, and audit records are preserved. No public organizer signup is available. Never expose server secrets in client environment variables.
 
 ## Verification
