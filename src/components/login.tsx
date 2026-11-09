@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { api, FormMessage, LoadingButton, SectionLabel } from "./ui";
+import { PasswordInput } from "./password-input";
 export function Login({
   organizer = false,
   supportEmail = "",
@@ -74,9 +75,8 @@ export function Login({
           </div>
           <div className="field">
             <label htmlFor="login-password">Password</label>
-            <input
+            <PasswordInput
               id="login-password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Your dashboard password"

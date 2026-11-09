@@ -1731,6 +1731,35 @@ h2 {
 .field-full {
   grid-column: 1/-1;
 }
+.password-input {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.field .password-input input {
+  padding-right: 54px;
+  min-height: 46px;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 4px;
+  color: #31452f;
+}
+.password-toggle:hover {
+  background: #eef3e7;
+}
+.password-toggle:focus-visible {
+  outline: 2px solid #315e3c;
+  outline-offset: -3px;
+}
 .team-size-options {
   display: flex;
   gap: 10px;
@@ -5600,6 +5629,7 @@ body {
   opacity: 0.85;
 }
 .leap-registration {
+  --registration-muted: #45533f;
   display: grid;
   grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.3fr);
   min-height: 100vh;
@@ -5625,7 +5655,7 @@ body {
   color: #588048;
 }
 .leap-registration-aside p {
-  color: #6e7b62;
+  color: var(--registration-muted);
   line-height: 1.9;
   font-size: 12px;
 }
@@ -5669,9 +5699,9 @@ body {
   font-size: 10px;
 }
 .leap-registration-top > span {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.8px;
-  color: #839078;
+  color: var(--registration-muted);
 }
 .leap-registration-top a {
   display: flex;
@@ -5692,11 +5722,11 @@ body {
   padding: 0;
 }
 .leap-form-steps li {
-  font-size: 10px;
+  font-size: 11px;
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #939b8c;
+  color: var(--registration-muted);
 }
 .leap-form-steps li > span {
   display: grid;
@@ -5720,10 +5750,10 @@ body {
 }
 .leap-form-heading > span {
   font:
-    9px var(--font-geist-mono),
+    10px var(--font-geist-mono),
     monospace;
   letter-spacing: 1px;
-  color: #859476;
+  color: var(--registration-muted);
 }
 .leap-form-heading h2 {
   font-size: 29px;
@@ -5732,9 +5762,9 @@ body {
   margin: 13px 0;
 }
 .leap-form-heading p {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.8;
-  color: #78836e;
+  color: var(--registration-muted);
 }
 .leap-registration .field {
   margin-bottom: 20px;
@@ -5756,14 +5786,14 @@ body {
   font-size: 11px;
 }
 .leap-registration .field label span {
-  color: #859078;
-  font-size: 9px;
+  color: var(--registration-muted);
+  font-size: 10px;
 }
 .leap-registration .field > small {
   display: block;
   margin-top: 8px;
-  font-size: 10px;
-  color: #7d8872;
+  font-size: 12px;
+  color: var(--registration-muted);
   line-height: 1.7;
 }
 .leap-registration input[aria-invalid="true"],
@@ -5792,8 +5822,8 @@ body {
   overflow-wrap: anywhere;
 }
 .leap-upload > span {
-  font-size: 10px;
-  color: #7e8a72;
+  font-size: 12px;
+  color: var(--registration-muted);
 }
 .leap-upload input {
   position: absolute;
@@ -5830,8 +5860,8 @@ body {
   justify-content: space-between;
   gap: 15px;
   margin-top: 24px;
-  font-size: 9px;
-  color: #8a947f;
+  font-size: 11px;
+  color: var(--registration-muted);
   line-height: 1.8;
 }
 .leap-draft-note button {
@@ -5845,8 +5875,8 @@ body {
   margin-bottom: 22px;
 }
 .leap-form-help {
-  color: #87927c;
-  font-size: 10px;
+  color: var(--registration-muted);
+  font-size: 12px;
   line-height: 1.8;
   margin-block: 10px 25px;
 }
@@ -5862,12 +5892,12 @@ body {
   margin-bottom: 6px;
 }
 .leap-members-heading h3 span {
-  font-size: 10px;
-  color: #839078;
+  font-size: 12px;
+  color: var(--registration-muted);
 }
 .leap-members-heading > span {
-  font-size: 10px;
-  color: #839078;
+  font-size: 12px;
+  color: var(--registration-muted);
 }
 .leap-member-row {
   display: grid;
@@ -5904,9 +5934,9 @@ body {
 }
 .leap-review > p {
   margin-block: 15px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.9;
-  color: #728067;
+  color: var(--registration-muted);
   overflow-wrap: anywhere;
 }
 .leap-review > p:has(svg) {

@@ -18,6 +18,7 @@ import { STARTUP_STAGES } from "@/lib/registration";
 import { registrationState, type PublicEvent } from "@/lib/types";
 import { api, Brand, FormMessage, LoadingButton, formatDate } from "./ui";
 import { usePublicEvent } from "./use-public-event";
+import { PasswordInput } from "./password-input";
 type Draft = {
   startupName: string;
   startupStage: string;
@@ -213,54 +214,57 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
     label: string,
     placeholder: string,
     type = "text",
-  ) => (
-    <div className="field">
-      <label htmlFor={key}>
-        {label} <span>*</span>
-      </label>
-      <input
-        id={key}
-        type={type}
-        value={data[key]}
-        placeholder={placeholder}
-        autoComplete={
-          key === "password"
-            ? "new-password"
-            : key === "email"
-              ? "email"
-              : key === "leaderName"
-                ? "name"
-                : key === "whatsapp"
-                  ? "tel"
-                  : key === "institution"
-                    ? "organization"
-                    : "off"
-        }
-        maxLength={
-          key === "password"
-            ? 72
-            : key === "startupName"
-              ? 80
+  ) => {
+    const Input = key === "password" ? PasswordInput : "input";
+    return (
+      <div className="field">
+        <label htmlFor={key}>
+          {label} <span>*</span>
+        </label>
+        <Input
+          id={key}
+          type={type}
+          value={data[key]}
+          placeholder={placeholder}
+          autoComplete={
+            key === "password"
+              ? "new-password"
               : key === "email"
-                ? 254
-                : key === "institution"
-                  ? 160
+                ? "email"
+                : key === "leaderName"
+                  ? "name"
                   : key === "whatsapp"
-                    ? 24
-                    : 100
-        }
-        required
-        aria-invalid={!!fields[key]}
-        aria-describedby={fields[key] ? `${key}-error` : undefined}
-        onChange={(e) => change(key, e.target.value)}
-      />
-      {fields[key] && (
-        <small className="field-error" id={`${key}-error`}>
-          {fields[key]}
-        </small>
-      )}
-    </div>
-  );
+                    ? "tel"
+                    : key === "institution"
+                      ? "organization"
+                      : "off"
+          }
+          maxLength={
+            key === "password"
+              ? 72
+              : key === "startupName"
+                ? 80
+                : key === "email"
+                  ? 254
+                  : key === "institution"
+                    ? 160
+                    : key === "whatsapp"
+                      ? 24
+                      : 100
+          }
+          required
+          aria-invalid={!!fields[key]}
+          aria-describedby={fields[key] ? `${key}-error` : undefined}
+          onChange={(e) => change(key, e.target.value)}
+        />
+        {fields[key] && (
+          <small className="field-error" id={`${key}-error`}>
+            {fields[key]}
+          </small>
+        )}
+      </div>
+    );
+  };
   return (
     <main className="leap-registration">
       <aside className="leap-registration-aside">
