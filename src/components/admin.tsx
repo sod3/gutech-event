@@ -1220,7 +1220,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                               style={{
                                 fontSize: 12,
                                 color: "var(--foreground)",
-                                border: "1px solid #e3ebf7",
+                                border: "1px solid var(--line)",
                                 borderRadius: 4,
                                 padding: "4px 6px",
                               }}

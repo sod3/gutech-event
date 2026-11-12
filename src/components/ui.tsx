@@ -30,7 +30,7 @@ export function Brand({ small = false }: { small?: boolean }) {
         <MoveUpRight size={23} strokeWidth={2.5} />
       </span>
       <span>
-        LEAP<span className="brand-year">3</span>
+        LEAP<span className="brand-year">3.0</span>
       </span>
     </Link>
   );

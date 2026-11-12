@@ -10,9 +10,9 @@ export default function Image() {
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: "#f0f3e8",
+        background: "#000000",
         padding: "70px 80px",
-        color: "#0f172a",
+        color: "#ffffff",
         fontFamily: "sans-serif",
       }}
     >
@@ -24,7 +24,7 @@ export default function Image() {
           letterSpacing: -1,
         }}
       >
-        LEAP<span style={{ color: "#528047", marginLeft: 8 }}>3</span>
+        LEAP<span style={{ color: "#ff5c6c", marginLeft: 8 }}>3</span>
       </div>
       <div
         style={{
@@ -39,7 +39,7 @@ export default function Image() {
       >
         <span>PITCH YOUR STARTUP.</span>
         <span>
-          UNLOCK <span style={{ color: "#528047" }}>OPPORTUNITIES.</span>
+          UNLOCK <span style={{ color: "#ff5c6c" }}>OPPORTUNITIES.</span>
         </span>
       </div>
       <div
@@ -47,7 +47,7 @@ export default function Image() {
           display: "flex",
           marginTop: 35,
           fontSize: 25,
-          color: "#667085",
+          color: "#b8b4bc",
         }}
       >
         GUtech University’s Official Startup Pitching Event

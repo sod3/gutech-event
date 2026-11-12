@@ -1,4 +1,5 @@
 "use client";
+import { Ribbon } from "./ribbon";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -268,6 +269,7 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
   return (
     <main className="leap-registration">
       <aside className="leap-registration-aside">
+        <Ribbon className="registration-ribbon" />
         <Brand />
         <div>
           <span className="leap-eyebrow">LEAP 3 · STARTUP APPLICATION</span>
@@ -320,7 +322,11 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
         <div className="leap-form-wrap">
           <ol className="leap-form-steps">
             {["Your startup", "Your team", "Review & submit"].map((s, i) => (
-              <li key={s} className={step >= i ? "active" : ""}>
+              <li
+                key={s}
+                className={step >= i ? "active" : ""}
+                aria-current={step === i ? "step" : undefined}
+              >
                 <span>{step > i ? <Check size={14} /> : i + 1}</span>
                 {s}
               </li>

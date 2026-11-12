@@ -2,7 +2,8 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { Ribbon } from "./ribbon";
 import { api, FormMessage, LoadingButton, SectionLabel } from "./ui";
 import { PasswordInput } from "./password-input";
 export function Login({
@@ -50,7 +51,7 @@ export function Login({
           <br />
           Everything you need, in one place.
         </p>
-        <Sparkles />
+        <Ribbon className="login-ribbon" />
       </div>
       <div className="login-main">
         <form onSubmit={submit} className="login-form">

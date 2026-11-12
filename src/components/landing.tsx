@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Footer, Header, Reveal, SectionLabel, formatDate } from "./ui";
 import { usePublicEvent } from "./use-public-event";
+import { Ribbon } from "./ribbon";
 import { registrationState, type PublicEvent } from "@/lib/types";
 const opportunities = [
   {
@@ -152,19 +153,9 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
               <span>THE NEXT CHAPTER STARTS HERE</span>
               <MoveUpRight size={24} />
             </div>
-            <div className="leap-orbits">
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className="leap-sculpture">
-              <div className="leap-block leap-block-one" />
-              <div className="leap-block leap-block-two" />
-              <div className="leap-block leap-block-three" />
-              <MoveUpRight className="leap-rise" strokeWidth={1.1} />
-            </div>
+            <Ribbon />
             <div className="leap-visual-title">
-              LEAP<span>3</span>
+              LEAP<span>3.0</span>
               <small>BIG IDEAS. REAL OPPORTUNITIES.</small>
             </div>
             <div className="leap-floating-card">
@@ -363,6 +354,7 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
           </div>
         </section>
         <section className="container leap-final">
+          <Ribbon className="final-ribbon" />
           <div>
             <span className="leap-eyebrow">
               YOUR IDEA COULD BE WHAT’S NEXT.

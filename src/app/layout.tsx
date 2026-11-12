@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Syne } from "next/font/google";
 import "./globals.css";
+import "./leap-theme.css";
 import { ScrollReset } from "@/components/scroll-reset";
 const geistSans = Geist({
   variable: "--font-geist-sans",
