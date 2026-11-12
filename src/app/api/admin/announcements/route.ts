@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { collections } from "@/lib/db";
 import { apiError, authorize, id, json, sameOrigin } from "@/lib/security";
+import { revalidatePublicEvent } from "@/lib/public-event-cache";
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
       note: input.title,
       createdAt: new Date(),
     });
+    revalidatePublicEvent();
     return json({ message: "Announcement published." });
   } catch (e) {
     return apiError(e);
@@ -41,6 +43,7 @@ export async function DELETE(request: Request) {
       action: "announcement_deleted",
       createdAt: new Date(),
     });
+    revalidatePublicEvent();
     return json({ message: "Announcement removed." });
   } catch (e) {
     return apiError(e);

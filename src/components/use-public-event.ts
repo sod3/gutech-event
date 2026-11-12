@@ -3,6 +3,15 @@ import { useEffect, useState } from "react";
 import type { PublicEvent } from "@/lib/types";
 import { api } from "./ui";
 
+let inFlight: Promise<PublicEvent> | null = null;
+function latestEvent() {
+  if (!inFlight)
+    inFlight = api<PublicEvent>("/api/event").finally(() => {
+      inFlight = null;
+    });
+  return inFlight;
+}
+
 // Keep registration availability current without resetting any form fields.
 export function usePublicEvent(initialEvent: PublicEvent) {
   const [event, setEvent] = useState(initialEvent);
@@ -13,7 +22,7 @@ export function usePublicEvent(initialEvent: PublicEvent) {
       if (pending || document.visibilityState !== "visible") return;
       pending = true;
       try {
-        const latest = await api<PublicEvent>("/api/event");
+        const latest = await latestEvent();
         if (!cancelled) setEvent(latest);
       } catch {
         // A temporary network error must not erase a student's draft.

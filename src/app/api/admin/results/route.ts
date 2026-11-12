@@ -1,6 +1,7 @@
 import { CONFIRMED_TEAM_FILTER } from "@/lib/registration";
 import { z } from "zod";
 import { collections } from "@/lib/db";
+import { revalidatePublicEvent } from "@/lib/public-event-cache";
 import {
   apiError,
   authorize,
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
     } finally {
       await session.endSession();
     }
+    revalidatePublicEvent();
     return json({
       message: input.publish
         ? "Approved results are now public."

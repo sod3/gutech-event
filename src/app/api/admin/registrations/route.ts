@@ -12,6 +12,7 @@ import {
 import { registrationStatus, REGISTRATION_STATUSES } from "@/lib/registration";
 import { lockOpenEvent } from "@/lib/judging";
 import { queueConfirmation } from "@/lib/mail";
+import { revalidatePublicEvent } from "@/lib/public-event-cache";
 export async function PATCH(request: Request) {
   try {
     sameOrigin(request);
@@ -83,6 +84,7 @@ export async function PATCH(request: Request) {
     } finally {
       await session.endSession();
     }
+    revalidatePublicEvent();
     return json({ message: "Registration status and internal notes saved." });
   } catch (error) {
     return apiError(error);

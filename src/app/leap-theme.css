@@ -307,6 +307,16 @@ input::placeholder, textarea::placeholder { opacity: 1; }
 .leap-final > .final-ribbon { position: absolute; width: 65%; right: -10%; top: -10%; opacity: .8; z-index: 1; }
 
 /* Application, sign in, and confirmation: the same identity, quieter surfaces. */
+.application-loading { padding-top: 110px; }
+.application-skeleton > div, .application-skeleton .form-grid > div {
+  background: #ffffff06;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  min-height: 48px;
+}
+.application-skeleton > .form-grid { background: none; border: 0; }
+.application-skeleton > .application-skeleton-description { min-height: 180px; margin-block: 35px; }
+.application-skeleton > .application-skeleton-upload { min-height: 145px; border-style: dashed; }
 .leap-registration { background: #000; --registration-muted: #b8b4bc; }
 .leap-registration-aside {
   position: relative;

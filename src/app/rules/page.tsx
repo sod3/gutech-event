@@ -2,7 +2,7 @@ import { Header, Footer, SectionLabel } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { publicEvent } from "@/lib/event";
 export const metadata = { title: "Application guide" };
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 export default async function Page() {
   const event = await publicEvent();
   return (

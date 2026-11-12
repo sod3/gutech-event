@@ -12,6 +12,7 @@ import {
 } from "@/lib/security";
 import { lockOpenEvent } from "@/lib/judging";
 import { DEFAULT_SETTINGS } from "@/lib/types";
+import { revalidatePublicEvent } from "@/lib/public-event-cache";
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
       } finally {
         await session.endSession();
       }
+      revalidatePublicEvent();
       return json({
         fileId: file._id.toString(),
         message: "Official logo uploaded.",

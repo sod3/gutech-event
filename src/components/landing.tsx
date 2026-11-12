@@ -14,7 +14,8 @@ import {
   Rocket,
   Sprout,
 } from "lucide-react";
-import { Footer, Header, Reveal, SectionLabel, formatDate } from "./ui";
+import { Footer, Header, SectionLabel, formatDate } from "./ui";
+import { Reveal } from "./reveal";
 import { usePublicEvent } from "./use-public-event";
 import { Ribbon } from "./ribbon";
 import { registrationState, type PublicEvent } from "@/lib/types";
@@ -126,7 +127,11 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
               community of founders and mentors.
             </p>
             <div className="leap-hero-actions">
-              <Link className="button button-primary" href="/register">
+              <Link
+                className="button button-primary"
+                href="/register"
+                prefetch={true}
+              >
                 Submit your startup <ArrowUpRight size={18} />
               </Link>
               <a className="leap-simple-link" href="#journey">
@@ -369,7 +374,7 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
               <br />
               That’s all you need to apply.
             </p>
-            <Link href="/register" className="button">
+            <Link href="/register" prefetch={true} className="button">
               Apply for free <ArrowUpRight size={18} />
             </Link>
             <small>

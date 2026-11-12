@@ -202,7 +202,7 @@ export const EMPTY_SUBMISSION: Submission = {
 };
 export const DEFAULT_SETTINGS: EventSettings = {
   registrationOpen: false,
-  eventDate: "2026-10-30T00:00:00+05:00",
+  eventDate: "2026-12-12T00:00:00+05:00",
   registrationDeadline: "2026-12-15T23:59:59+05:00",
   submissionDeadline: "",
   phaseDates: ["", "", "", "", ""],

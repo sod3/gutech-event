@@ -15,7 +15,6 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 export { formatDate } from "@/lib/dates";
@@ -57,15 +56,19 @@ export function Header() {
           <Link href="/#faq" onClick={() => setOpen(false)}>
             FAQs
           </Link>
-          <Link href="/login" className="mobile-sign-in">
+          <Link href="/login" prefetch={true} className="mobile-sign-in">
             Team sign in <ArrowUpRight size={14} />
           </Link>
         </nav>
         <div className="header-actions">
-          <Link href="/login" className="header-login">
+          <Link href="/login" prefetch={true} className="header-login">
             Sign in <ArrowUpRight size={13} />
           </Link>
-          <Link href="/register" className="button button-primary button-small">
+          <Link
+            href="/register"
+            prefetch={true}
+            className="button button-primary button-small"
+          >
             Apply for free <ArrowUpRight size={16} />
           </Link>
           <button
@@ -107,28 +110,6 @@ export function Footer() {
         </div>
       </div>
     </footer>
-  );
-}
-export function Reveal({
-  children,
-  className = "",
-  delay = 0,
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const reduced = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduced ? false : { opacity: 1, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay }}
-    >
-      {children}
-    </motion.div>
   );
 }
 export function SectionLabel({

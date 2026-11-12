@@ -1,7 +1,7 @@
 import { Header, Footer, SectionLabel } from "@/components/ui";
 import { publicEvent } from "@/lib/event";
 export const metadata = { title: "Privacy policy" };
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 export default async function Page() {
   const event = await publicEvent();
   return (

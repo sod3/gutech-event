@@ -337,6 +337,11 @@ try {
     ).status === 400,
   );
   check(
+    "public cache is primed before organizer configuration changes",
+    !(await guest("/api/event")).data.registrationOpen,
+  );
+  await Promise.all(["/", "/rules", "/privacy"].map((path) => guest(path)));
+  check(
     "official event settings persist",
     (await admin("/api/admin/settings", "PUT", settings)).status === 200,
   );
@@ -354,7 +359,7 @@ try {
   for (const page of ["/", "/register", "/rules"]) {
     const response = await guest(page);
     check(
-      `${page} displays the saved registration deadline`,
+      `${page} displays the saved registration deadline (${response.headers.get("x-nextjs-cache") || "dynamic"})`,
       response.status === 200 && response.data.includes(displayedDeadline),
     );
   }

@@ -1,15 +1,22 @@
 import "server-only";
-import { collections } from "./db";
+import { unstable_cache } from "next/cache";
+import { collections, database } from "./db";
+import { PUBLIC_EVENT_TAG } from "./public-event-cache";
 import { CONFIRMED_TEAM_FILTER, registrationStatus } from "./registration";
 import {
   DEFAULT_SETTINGS,
+  type Announcement,
   type EventSettings,
   type PublicEvent,
+  type PublicResult,
   type SafeTeam,
   type TeamDoc,
 } from "./types";
 export async function getSettings(): Promise<EventSettings> {
   const doc = await (await collections()).settings.findOne({ _id: "event" });
+  return eventSettings(doc);
+}
+function eventSettings(doc: EventSettings | null): EventSettings {
   if (!doc) return { ...DEFAULT_SETTINGS };
   // Pick fields explicitly so database-only fields never cross the boundary.
   return {
@@ -29,20 +36,30 @@ export async function getSettings(): Promise<EventSettings> {
     partnerLogoId: doc.partnerLogoId,
   };
 }
-export async function publicEvent(): Promise<PublicEvent> {
-  try {
-    const c = await collections();
-    const settings = await getSettings();
-    const [confirmedTeams, announcements, results] = await Promise.all([
-      c.teams.countDocuments(CONFIRMED_TEAM_FILTER),
-      c.announcements.find().sort({ createdAt: -1 }).limit(20).toArray(),
-      settings.resultsPublished
-        ? c.results
-            .find({}, { projection: { _id: 0 } })
-            .sort({ place: 1 })
-            .toArray()
-        : Promise.resolve([]),
+// Keep the existing router configuration; this explicit data cache does not
+// require enabling Cache Components across authenticated pages and API routes.
+const cachedPublicEvent = unstable_cache(
+  async (): Promise<PublicEvent> => {
+    // Public reads must not wait for account indexes and schema setup. Those
+    // remain enforced by collections() on the authenticated/write paths.
+    const { db } = await database();
+    const [doc, confirmedTeams, announcements] = await Promise.all([
+      db.collection<EventSettings & { _id: string }>("settings")
+        .findOne({ _id: "event" }),
+      db.collection<TeamDoc>("teams").countDocuments(CONFIRMED_TEAM_FILTER),
+      db.collection<Announcement>("announcements")
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .toArray(),
     ]);
+    const settings = eventSettings(doc);
+    const results = settings.resultsPublished
+      ? await db.collection<PublicResult>("results")
+          .find({}, { projection: { _id: 0 } })
+          .sort({ place: 1 })
+          .toArray()
+      : [];
     return {
       ...settings,
       paymentMethods: [],
@@ -58,7 +75,15 @@ export async function publicEvent(): Promise<PublicEvent> {
       })),
       results,
     };
+  },
+  ["leap-public-event-v1", process.env.MONGODB_DB || "buildfest2026"],
+  { revalidate: 15, tags: [PUBLIC_EVENT_TAG] },
+);
+export async function publicEvent(): Promise<PublicEvent> {
+  try {
+    return await cachedPublicEvent();
   } catch {
+    // A connection failure is never stored as a successful cache entry.
     return {
       ...DEFAULT_SETTINGS,
       available: false,

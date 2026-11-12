@@ -92,7 +92,8 @@ export function Login({
           </LoadingButton>
           {!organizer && (
             <div className="login-register">
-              New here? <Link href="/register">Register your team ↗</Link>
+              New here?{" "}
+              <Link href="/register" prefetch={true}>Register your team ↗</Link>
             </div>
           )}
           <div className="login-note">

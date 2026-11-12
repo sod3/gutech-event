@@ -12,7 +12,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ role?: string }>;
 }) {
-  const user = await currentUser();
+  const [user, event] = await Promise.all([currentUser(), publicEvent()]);
   if (user)
     redirect(
       user.role === "admin"
@@ -21,7 +21,6 @@ export default async function Page({
           ? "/judge"
           : "/dashboard",
     );
-  const event = await publicEvent();
   return (
     <>
       <Header />

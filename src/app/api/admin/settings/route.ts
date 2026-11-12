@@ -1,6 +1,7 @@
 import { collections } from "@/lib/db";
 import { apiError, authorize, json, sameOrigin } from "@/lib/security";
 import { settingsSchema } from "@/lib/validation";
+import { revalidatePublicEvent } from "@/lib/public-event-cache";
 export async function PUT(request: Request) {
   try {
     sameOrigin(request);
@@ -17,6 +18,7 @@ export async function PUT(request: Request) {
       action: "event_settings_updated",
       createdAt: new Date(),
     });
+    revalidatePublicEvent();
     return json({ message: "Event configuration saved." });
   } catch (e) {
     return apiError(e);
