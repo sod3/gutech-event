@@ -95,7 +95,7 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
     ],
     [
       "What should the PDF pitch deck include?",
-      "Explain your startup idea, the problem, your solution, and your target customers. Include your current stage and team; add validation, traction, or product visuals if available. A working product is not required. Upload a PDF smaller than 3 MB.",
+      "Explain your startup idea, the problem, your solution, and your target customers. Include your current stage and team; add validation, traction, or product visuals if available. A working product is not required. Upload a PDF smaller than 10 MB.",
     ],
     [
       "Who are the judges?",

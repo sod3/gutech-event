@@ -12,7 +12,7 @@ Run `npm install` and `npm run dev`. Configure the server environment using `.en
 2. Leader's name, email, WhatsApp, university/organization, and dashboard password; unlimited additional members with names and emails. Solo founders welcome.
 3. Review, consent, and submission.
 
-Stages: Idea Only / Prototype / MVP / Existing or Growing Business. Describe the idea, problem, solution, and target customers. Decks must be non-empty PDFs smaller than 3 MB. Account, application, original PDF, consent, and audit event save in one MongoDB transaction. Duplicate retries fingerprint both the details and PDF. Browser drafts exclude passwords, PDFs, and consent checkboxes.
+Stages: Idea Only / Prototype / MVP / Existing or Growing Business. Describe the idea, problem, solution, and target customers. Decks must be non-empty PDFs smaller than 10 MB. Account, application, original PDF, consent, and audit event save in one MongoDB transaction. Duplicate retries fingerprint both the details and PDF. Browser drafts exclude passwords, PDFs, and consent checkboxes.
 
 Success: "Your application has been submitted successfully. Our team will review your startup and contact you if shortlisted."
 
@@ -39,15 +39,16 @@ The existing private owner configuration, trusted `npm run setup:admin` provisio
 ## Verification
 
 Public event presentation data is cached for 15 seconds, and the homepage,
-application guide, and privacy page are served as prerendered pages. Organizer
+public application form, application guide, and privacy page are prerendered. Organizer
 changes to settings, announcements, shortlisting, results, and logos immediately
 expire the public data and page caches. Authentication, private files, and
 registration/submission deadline enforcement remain uncached.
 
-Application links fully prefetch the registration page. Its authentication check
-runs before a streaming boundary so existing participant redirects are preserved;
-an immediate loading shell covers a cold public-data read. Animation code is
-isolated from the shared form/dashboard controls.
+Application links fully prefetch the registration page. Requests with a session
+cookie are routed by `src/proxy.ts` to an uncached session-check page, preserving
+the existing participant redirect and database session verification. New visitors
+receive the CDN-cached public form. Animation code is isolated from the shared
+form/dashboard controls.
 
 Run `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test:registration`, and `npm run test:integration:local`.
 
@@ -57,4 +58,4 @@ The integration verifier uses a disposable local MongoDB replica set. It checks 
 
 ## Deployment
 
-The workspace is linked to Vercel project gutech-event at https://gutech-event.vercel.app. Preserve the existing server environment and Node.js runtime. The 3 MB deck limit leaves room below the request body ceiling.
+The workspace is linked to Vercel project gutech-event at https://gutech-event.vercel.app. Preserve the existing server environment and Node.js runtime. The 10 MB deck limit leaves room below the request body ceiling.

@@ -418,7 +418,7 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                 </div>
                 <div className="field leap-deck-field">
                   <label htmlFor="deck">
-                    Startup Pitch Deck <span>* · PDF, up to 3 MB</span>
+                    Startup Pitch Deck <span>* · PDF, up to 10 MB</span>
                   </label>
                   <div className={`leap-upload ${deck ? "has-file" : ""}`}>
                     <Upload size={26} />
@@ -443,13 +443,13 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                         if (
                           !/\.pdf$/i.test(f.name) ||
                         (f.type && f.type !== "application/pdf") ||
-                          f.size > 3000000 ||
+                          f.size > 10000000 ||
                           !f.size
                         ) {
                           setDeck(null);
                           setFields((p) => ({
                             ...p,
-                            deck: "Choose a non-empty PDF smaller than 3 MB.",
+                            deck: "Choose a non-empty PDF smaller than 10 MB.",
                           }));
                           e.target.value = "";
                           return;

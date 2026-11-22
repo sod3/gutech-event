@@ -7,6 +7,6 @@ export const PUBLIC_EVENT_TAG = "leap-public-event";
 // reading the database directly. Organizer changes expire both data and HTML.
 export function revalidatePublicEvent() {
   revalidateTag(PUBLIC_EVENT_TAG, { expire: 0 });
-  for (const path of ["/", "/rules", "/privacy"])
+  for (const path of ["/", "/register", "/rules", "/privacy"])
     revalidatePath(path);
 }

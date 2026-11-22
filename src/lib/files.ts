@@ -8,8 +8,8 @@ export async function prepareFile(
   purpose: FileDoc["purpose"],
   teamId?: ObjectId,
 ): Promise<FileDoc> {
-  if (!file.size || file.size > 3_000_000)
-    throw new HttpError(400, "Choose a file smaller than 3 MB.");
+  if (!file.size || file.size > 10_000_000)
+    throw new HttpError(400, "Choose a file smaller than 10 MB.");
   const data = Buffer.from(await file.arrayBuffer());
   const png = data
     .subarray(0, 8)

@@ -385,7 +385,7 @@ export function Participant({
               ))}
               <div className="field field-full">
                 <label htmlFor="updated-deck">
-                  Updated pitch deck · PDF, up to 3 MB
+                  Updated pitch deck · PDF, up to 10 MB
                 </label>
                 <input
                   id="updated-deck"

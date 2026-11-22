@@ -30,8 +30,8 @@ export function sameOrigin(request: Request) {
   if (!origin || !allowed.has(origin))
     throw new HttpError(403, "This request must come from the LEAP 3 website.");
   const length = Number(request.headers.get("content-length") || 0);
-  if (length > 4_000_000)
-    throw new HttpError(413, "Uploads must be smaller than 3 MB.");
+  if (length > 15_000_000)
+    throw new HttpError(413, "Uploads must be smaller than 10 MB.");
 }
 export async function rateLimit(
   request: Request,

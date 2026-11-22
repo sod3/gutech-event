@@ -340,7 +340,22 @@ try {
     "public cache is primed before organizer configuration changes",
     !(await guest("/api/event")).data.registrationOpen,
   );
-  await Promise.all(["/", "/rules", "/privacy"].map((path) => guest(path)));
+  const publicPages = await Promise.all(
+    ["/", "/register", "/rules", "/privacy"].map((path) => guest(path)),
+  );
+  check(
+    "anonymous application form is prerendered and shared-cacheable",
+    publicPages[1].status === 200 &&
+      publicPages[1].headers.get("cache-control")?.includes("s-maxage="),
+  );
+  const invalidSession = await guest("/register", "GET", undefined, {
+    headers: { cookie: "bf_session=invalid-verification-session" },
+  });
+  check(
+    "session-cookie application requests keep an uncached authentication check",
+    invalidSession.status === 200 &&
+      invalidSession.headers.get("cache-control")?.includes("no-store"),
+  );
   check(
     "official event settings persist",
     (await admin("/api/admin/settings", "PUT", settings)).status === 200,
@@ -445,7 +460,7 @@ try {
         "POST",
         form(
           registration,
-          new Blob(["%PDF-", new Uint8Array(3000000)], {
+          new Blob(["%PDF-", new Uint8Array(10000000)], {
             type: "application/pdf",
           }),
         ),

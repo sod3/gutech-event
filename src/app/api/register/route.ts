@@ -26,10 +26,10 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
-    if (Number(request.headers.get("content-length")) > 4_300_000)
+    if (Number(request.headers.get("content-length")) > 15_000_000)
       throw new HttpError(
         413,
-        "Application is too large. Use a PDF smaller than 3 MB.",
+        "Application is too large. Use a PDF smaller than 10 MB.",
       );
     const form = await request.formData();
     const input = registrationSchema.parse(

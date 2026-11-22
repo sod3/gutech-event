@@ -105,7 +105,7 @@ export async function applyDatabasePolicies(db: Db) {
         purpose: { enum: ["receipt", "deck", "logo"] },
         type: { enum: ["image/png", "image/jpeg", "application/pdf"] },
         data: { bsonType: "binData" },
-        size: { bsonType: ["int", "double"], minimum: 1, maximum: 3000000 },
+        size: { bsonType: ["int", "double"], minimum: 1, maximum: 10000000 },
         createdAt: { bsonType: "date" },
       },
     },
