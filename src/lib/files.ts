@@ -1,6 +1,7 @@
 import "server-only";
 import { Binary, ObjectId } from "mongodb";
 import type { FileDoc } from "./types";
+import { MAX_DECK_BYTES, MAX_DECK_LABEL } from "./registration";
 import { HttpError } from "./security";
 
 export async function prepareFile(
@@ -8,8 +9,10 @@ export async function prepareFile(
   purpose: FileDoc["purpose"],
   teamId?: ObjectId,
 ): Promise<FileDoc> {
-  if (!file.size || file.size > 10_000_000)
-    throw new HttpError(400, "Choose a file smaller than 10 MB.");
+  const maxBytes = purpose === "deck" ? MAX_DECK_BYTES : 10_000_000;
+  const maxLabel = purpose === "deck" ? MAX_DECK_LABEL : "10 MB";
+  if (!file.size || file.size > maxBytes)
+    throw new HttpError(400, `Choose a file smaller than ${maxLabel}.`);
   const data = Buffer.from(await file.arrayBuffer());
   const png = data
     .subarray(0, 8)

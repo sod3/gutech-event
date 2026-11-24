@@ -460,7 +460,7 @@ try {
         "POST",
         form(
           registration,
-          new Blob(["%PDF-", new Uint8Array(10000000)], {
+          new Blob(["%PDF-", new Uint8Array(4300000)], {
             type: "application/pdf",
           }),
         ),

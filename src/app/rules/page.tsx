@@ -1,6 +1,7 @@
 import { Header, Footer, SectionLabel } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { publicEvent } from "@/lib/event";
+import { MAX_DECK_LABEL } from "@/lib/registration";
 export const metadata = { title: "Application guide" };
 export const revalidate = 60;
 export default async function Page() {
@@ -43,7 +44,7 @@ export default async function Page() {
             problem, solution, and target customers.
           </li>
           <li>
-            A required PDF pitch deck, smaller than 10 MB, explaining your
+            A required PDF pitch deck, smaller than {MAX_DECK_LABEL}, explaining your
             startup for organizer review.
           </li>
           <li>

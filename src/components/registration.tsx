@@ -15,7 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { registrationSchema } from "@/lib/validation";
-import { STARTUP_STAGES } from "@/lib/registration";
+import { MAX_DECK_BYTES, MAX_DECK_LABEL, STARTUP_STAGES } from "@/lib/registration";
 import { registrationState, type PublicEvent } from "@/lib/types";
 import { api, Brand, FormMessage, LoadingButton, formatDate } from "./ui";
 import { usePublicEvent } from "./use-public-event";
@@ -418,7 +418,7 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                 </div>
                 <div className="field leap-deck-field">
                   <label htmlFor="deck">
-                    Startup Pitch Deck <span>* · PDF, up to 10 MB</span>
+                    Startup Pitch Deck <span>* · PDF, up to {MAX_DECK_LABEL}</span>
                   </label>
                   <div className={`leap-upload ${deck ? "has-file" : ""}`}>
                     <Upload size={26} />
@@ -443,13 +443,13 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                         if (
                           !/\.pdf$/i.test(f.name) ||
                         (f.type && f.type !== "application/pdf") ||
-                          f.size > 10000000 ||
+                          f.size > MAX_DECK_BYTES ||
                           !f.size
                         ) {
                           setDeck(null);
                           setFields((p) => ({
                             ...p,
-                            deck: "Choose a non-empty PDF smaller than 10 MB.",
+                            deck: `Choose a non-empty PDF smaller than ${MAX_DECK_LABEL}.`,
                           }));
                           e.target.value = "";
                           return;

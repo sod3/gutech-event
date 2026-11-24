@@ -19,17 +19,17 @@ import {
   registrationState,
   type TeamDoc,
 } from "@/lib/types";
-import { registrationStatus } from "@/lib/registration";
+import { MAX_DECK_LABEL, registrationStatus } from "@/lib/registration";
 import { registrationSchema } from "@/lib/validation";
 import { prepareFile } from "@/lib/files";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
-    if (Number(request.headers.get("content-length")) > 15_000_000)
+    if (Number(request.headers.get("content-length")) > 5_000_000)
       throw new HttpError(
         413,
-        "Application is too large. Use a PDF smaller than 10 MB.",
+        `Application is too large. Use a PDF smaller than ${MAX_DECK_LABEL}.`,
       );
     const form = await request.formData();
     const input = registrationSchema.parse(

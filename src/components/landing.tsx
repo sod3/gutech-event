@@ -18,6 +18,7 @@ import { Footer, Header, SectionLabel, formatDate } from "./ui";
 import { Reveal } from "./reveal";
 import { usePublicEvent } from "./use-public-event";
 import { Ribbon } from "./ribbon";
+import { MAX_DECK_LABEL } from "@/lib/registration";
 import { registrationState, type PublicEvent } from "@/lib/types";
 const opportunities = [
   {
@@ -95,7 +96,7 @@ export function Landing({ event: initialEvent }: { event: PublicEvent }) {
     ],
     [
       "What should the PDF pitch deck include?",
-      "Explain your startup idea, the problem, your solution, and your target customers. Include your current stage and team; add validation, traction, or product visuals if available. A working product is not required. Upload a PDF smaller than 10 MB.",
+      `Explain your startup idea, the problem, your solution, and your target customers. Include your current stage and team; add validation, traction, or product visuals if available. A working product is not required. Upload a PDF smaller than ${MAX_DECK_LABEL}.`,
     ],
     [
       "Who are the judges?",

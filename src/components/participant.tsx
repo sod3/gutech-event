@@ -12,7 +12,11 @@ import {
   Lightbulb,
   Users,
 } from "lucide-react";
-import { ORGANIZER_FOLLOW_UP } from "@/lib/registration";
+import {
+  MAX_DECK_BYTES,
+  MAX_DECK_LABEL,
+  ORGANIZER_FOLLOW_UP,
+} from "@/lib/registration";
 import { type PublicEvent, type SafeTeam, type Submission } from "@/lib/types";
 import {
   api,
@@ -84,6 +88,16 @@ export function Participant({
     }
   };
   const upload = async (file: File) => {
+    if (
+      !/\.pdf$/i.test(file.name) ||
+      (file.type && file.type !== "application/pdf") ||
+      file.size > MAX_DECK_BYTES ||
+      !file.size
+    ) {
+      setError(`Choose a non-empty PDF smaller than ${MAX_DECK_LABEL}.`);
+      setMessage("");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -385,7 +399,7 @@ export function Participant({
               ))}
               <div className="field field-full">
                 <label htmlFor="updated-deck">
-                  Updated pitch deck · PDF, up to 10 MB
+                  Updated pitch deck · PDF, up to {MAX_DECK_LABEL}
                 </label>
                 <input
                   id="updated-deck"
