@@ -74,13 +74,18 @@ export async function PATCH(request: Request) {
               403,
               "Your startup must be shortlisted before you can update pitch details.",
             );
+          const deckFields = submission.deckUrl
+            ? { deckUrl: submission.deckUrl }
+            : latest?.submission.deckFileId
+              ? { deckFileId: latest.submission.deckFileId }
+              : {};
           await c.teams.updateOne(
             { _id: team._id },
             {
               $set: {
                 submission: {
                   ...submission,
-                  deckFileId: latest?.submission.deckFileId,
+                  ...deckFields,
                   updatedAt: new Date(),
                 },
               },

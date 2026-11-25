@@ -34,7 +34,7 @@ export function RegistrationSuccess({ team }: { team: SafeTeam }) {
           <small>APPLICATION STATUS</small>
           <Status status={team.registrationStatus} />
         </div>
-        {team.applicationDeckFileId && (
+        {team.applicationDeckFileId ? (
           <a
             className="text-link"
             href={`/api/files/${team.applicationDeckFileId}`}
@@ -42,6 +42,18 @@ export function RegistrationSuccess({ team }: { team: SafeTeam }) {
             <Download size={14} />
             Download submitted pitch deck
           </a>
+        ) : (
+          team.applicationDeckUrl && (
+            <a
+              className="text-link"
+              href={team.applicationDeckUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ArrowUpRight size={14} />
+              Open submitted pitch deck
+            </a>
+          )
         )}
         <p style={{ fontSize: 11, marginTop: 20 }}>
           Submit Your Startup → Application Review → Shortlisting → Pitch at

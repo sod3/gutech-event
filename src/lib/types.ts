@@ -58,6 +58,7 @@ export type Submission = {
   mvpUrl: string;
   pitchUrl: string;
   deckFileId?: string;
+  deckUrl?: string;
   aiTools: string;
   aiDeclaration: boolean;
   final: boolean;
@@ -76,6 +77,7 @@ export type TeamDoc = {
   startupStage?: StartupStage;
   startupDescription?: string;
   applicationDeckFileId?: string;
+  applicationDeckUrl?: string;
   registrationStatus?:
     | RegistrationStatus
     | "new"
@@ -116,6 +118,7 @@ export type SafeTeam = {
   startupStage?: StartupStage;
   startupDescription?: string;
   applicationDeckFileId?: string;
+  applicationDeckUrl?: string;
   payment: {
     status: PaymentStatus;
     methodId?: string;
@@ -203,7 +206,7 @@ export const EMPTY_SUBMISSION: Submission = {
 export const DEFAULT_SETTINGS: EventSettings = {
   registrationOpen: false,
   eventDate: "2026-12-12T00:00:00+05:00",
-  registrationDeadline: "2026-12-15T23:59:59+05:00",
+  registrationDeadline: "2026-12-02T23:59:59+05:00",
   submissionDeadline: "",
   phaseDates: ["", "", "", "", ""],
   paymentMethods: [],

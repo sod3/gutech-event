@@ -44,8 +44,9 @@ export default async function Page() {
             problem, solution, and target customers.
           </li>
           <li>
-            A required PDF pitch deck, smaller than {MAX_DECK_LABEL}, explaining your
-            startup for organizer review.
+            A required PDF pitch deck, smaller than {MAX_DECK_LABEL} (or a
+            viewable Google Drive link if larger), explaining your startup for
+            organizer review.
           </li>
           <li>
             Your team leader’s full name, email, WhatsApp number, and university

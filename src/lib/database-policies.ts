@@ -67,6 +67,7 @@ export async function applyDatabasePolicies(db: Db) {
           maxLength: 5000,
         },
         applicationDeckFileId: { bsonType: "string" },
+        applicationDeckUrl: { bsonType: "string", maxLength: 500 },
         internalNotes: { bsonType: "string", maxLength: 4000 },
         whatsappConsent: { bsonType: "bool" },
         whatsappConsentAt: { bsonType: "date" },

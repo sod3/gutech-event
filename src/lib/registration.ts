@@ -22,6 +22,16 @@ export const ORGANIZER_FOLLOW_UP =
   "Our team will review your startup and PDF pitch deck and contact you if shortlisted. Registration is completely free.";
 export const MAX_DECK_BYTES = 4_300_000;
 export const MAX_DECK_LABEL = "4.3 MB";
+export function isGoogleDriveUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    const host = url.hostname.toLowerCase();
+    return host === "drive.google.com" || host === "docs.google.com";
+  } catch {
+    return false;
+  }
+}
 // Existing confirmed teams retain access without rewriting their payment history.
 export function registrationStatus(
   team: Pick<TeamDoc, "registrationStatus" | "payment">,

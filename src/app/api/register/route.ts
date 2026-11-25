@@ -37,14 +37,23 @@ export async function POST(request: Request) {
     );
     const c = await collections();
     await rateLimit(request, "register", 10, 15);
-    const upload = form.get("deck");
-    if (!(upload instanceof File))
-      throw new HttpError(400, "Upload your startup pitch deck as a PDF.");
-    const deck = await prepareFile(upload, "deck");
+    const deckUrl = input.deckMode === "drive" ? input.deckUrl : "";
+    let deck: Awaited<ReturnType<typeof prepareFile>> | null = null;
+    if (input.deckMode === "drive") {
+      if (!deckUrl)
+        throw new HttpError(400, "Paste a Google Drive link to your pitch deck.");
+    } else {
+      const upload = form.get("deck");
+      if (!(upload instanceof File))
+        throw new HttpError(400, "Upload your startup pitch deck as a PDF.");
+      deck = await prepareFile(upload, "deck");
+    }
     const { password, ...details } = input;
     const fingerprint = hash(
       JSON.stringify(details) +
-        hash(Buffer.from(deck.data.buffer).toString("base64")),
+        (deck
+          ? hash(Buffer.from(deck.data.buffer).toString("base64"))
+          : deckUrl),
     );
     const complete = async (team: TeamDoc, status: number) => {
       const leader = await c.users.findOne({
@@ -88,7 +97,9 @@ export async function POST(request: Request) {
       nameKey: input.startupName.toLowerCase().replace(/\s+/g, " "),
       startupStage: input.startupStage,
       startupDescription: input.startupDescription,
-      applicationDeckFileId: deck._id.toString(),
+      ...(deck
+        ? { applicationDeckFileId: deck._id.toString() }
+        : { applicationDeckUrl: deckUrl }),
       leaderId: userId,
       members: [
         { name: input.leaderName, email: input.email },
@@ -109,7 +120,7 @@ export async function POST(request: Request) {
         ...EMPTY_SUBMISSION,
         title: input.startupName,
         solution: input.startupDescription,
-        deckFileId: deck._id.toString(),
+        ...(deck ? { deckFileId: deck._id.toString() } : { deckUrl }),
         final: true,
         updatedAt: now,
       },
@@ -118,7 +129,7 @@ export async function POST(request: Request) {
       createdAt: now,
     };
     const session = c.client.startSession();
-    deck.teamId = teamId;
+    if (deck) deck.teamId = teamId;
     try {
       await session.withTransaction(async () => {
         await c.users.insertOne(
@@ -135,7 +146,7 @@ export async function POST(request: Request) {
           { session },
         );
         await c.teams.insertOne(team, { session });
-        await c.files.insertOne(deck, { session });
+        if (deck) await c.files.insertOne(deck, { session });
         await c.audit.insertOne(
           {
             actorId: userId,

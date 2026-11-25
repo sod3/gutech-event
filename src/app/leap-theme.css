@@ -386,6 +386,34 @@ input::placeholder, textarea::placeholder { opacity: 1; }
 .leap-upload > span { color: var(--muted); }
 .leap-upload:focus-within { outline-color: var(--accent); }
 .leap-upload.has-file { background: #ff5c6c10; border-color: #ff5c6c80; }
+.leap-deck-toggle { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.leap-deck-toggle button {
+  background: #120d11;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: #c5b9c7;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 7px 12px;
+  transition: border-color .2s, background .2s, color .2s;
+}
+.leap-deck-toggle button:hover { border-color: #ffffff45; color: #fff; }
+.leap-deck-toggle button[aria-pressed="true"] {
+  background: #ff5c6c18;
+  border-color: var(--accent);
+  color: #fff;
+}
+.leap-deck-fallback {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 6px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .leap-form-actions { border-color: var(--line); padding-top: 26px; }
 .leap-form-actions .button { min-height: 48px; border-radius: 7px; font-size: 13px; }
 .leap-draft-note { color: #a79bab; gap: 20px; }

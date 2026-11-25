@@ -40,7 +40,11 @@ export async function GET() {
         t.name,
         t.startupStage || "",
         t.startupDescription || "",
-        t.applicationDeckFileId || t.submission.deckFileId || "",
+        t.applicationDeckFileId ||
+          t.applicationDeckUrl ||
+          t.submission.deckFileId ||
+          t.submission.deckUrl ||
+          "",
         t.members[0].name,
         t.members[0].email,
         t.whatsapp,

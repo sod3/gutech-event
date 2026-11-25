@@ -96,6 +96,7 @@ export async function POST(request: Request) {
               "submission.deckFileId": file._id.toString(),
               "submission.updatedAt": new Date(),
             },
+            $unset: { "submission.deckUrl": "" },
           },
           { session },
         );

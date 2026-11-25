@@ -240,7 +240,7 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
             team.submission.solution ||
             "No description saved for this existing registration."}
         </p>
-        {(team.applicationDeckFileId || team.submission.deckFileId) && (
+        {team.applicationDeckFileId || team.submission.deckFileId ? (
           <a
             className="button button-secondary button-small"
             href={`/api/files/${team.applicationDeckFileId || team.submission.deckFileId}`}
@@ -248,6 +248,18 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
             <Download size={14} />
             Download application pitch deck
           </a>
+        ) : (
+          (team.applicationDeckUrl || team.submission.deckUrl) && (
+            <a
+              className="button button-secondary button-small"
+              href={team.applicationDeckUrl || team.submission.deckUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ArrowUpRight size={14} />
+              Open application pitch deck link
+            </a>
+          )
         )}
       </div>
       {contactButton(team)}
@@ -439,6 +451,15 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                           href={`/api/files/${t.applicationDeckFileId || t.submission.deckFileId}`}
                         >
                           PDF <Download size={13} />
+                        </a>
+                      ) : t.applicationDeckUrl || t.submission.deckUrl ? (
+                        <a
+                          className="text-link"
+                          href={t.applicationDeckUrl || t.submission.deckUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Drive <ArrowUpRight size={13} />
                         </a>
                       ) : (
                         "Not uploaded"
@@ -698,13 +719,24 @@ export function Admin({ name, event }: { name: string; event: PublicEvent }) {
                 Pitch link <ArrowUpRight size={12} />
               </a>
             )}
-            {selected.submission.deckFileId && (
+            {selected.submission.deckFileId ? (
               <a
                 className="text-link"
                 href={`/api/files/${selected.submission.deckFileId}`}
               >
                 Pitch deck <Download size={12} />
               </a>
+            ) : (
+              selected.submission.deckUrl && (
+                <a
+                  className="text-link"
+                  href={selected.submission.deckUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Pitch deck link <ArrowUpRight size={12} />
+                </a>
+              )
             )}
           </div>
         </div>

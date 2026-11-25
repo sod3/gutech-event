@@ -109,7 +109,7 @@ export function Participant({
         "POST",
         body,
       );
-      setSubmission((p) => ({ ...p, deckFileId: r.fileId }));
+      setSubmission((p) => ({ ...p, deckFileId: r.fileId, deckUrl: "" }));
       setMessage(r.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to upload.");
@@ -287,6 +287,16 @@ export function Participant({
               <Download size={16} />
               Download application pitch deck
             </a>
+          ) : team.applicationDeckUrl || team.submission.deckUrl ? (
+            <a
+              className="button button-secondary"
+              href={team.applicationDeckUrl || team.submission.deckUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ArrowUpRight size={16} />
+              Open application pitch deck link
+            </a>
           ) : (
             <p className="payment-help">
               This existing registration has no application deck. Contact the
@@ -417,6 +427,35 @@ export function Participant({
                     href={`/api/files/${submission.deckFileId}`}
                   >
                     Download current deck <Download size={13} />
+                  </a>
+                )}
+              </div>
+              <div className="field field-full">
+                <label htmlFor="updated-deck-url">
+                  Or Google Drive pitch deck link (if PDF &gt; {MAX_DECK_LABEL})
+                </label>
+                <input
+                  id="updated-deck-url"
+                  type="url"
+                  maxLength={500}
+                  value={submission.deckUrl || ""}
+                  placeholder="https://drive.google.com/file/d/..."
+                  disabled={!editable || busy}
+                  onChange={(e) =>
+                    setSubmission((p) => ({
+                      ...p,
+                      deckUrl: e.target.value,
+                    }))
+                  }
+                />
+                {submission.deckUrl && (
+                  <a
+                    className="text-link"
+                    href={submission.deckUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open current deck link <ArrowUpRight size={13} />
                   </a>
                 )}
               </div>

@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { normalizeWhatsApp, STARTUP_STAGES } from "./registration";
+import {
+  isGoogleDriveUrl,
+  normalizeWhatsApp,
+  STARTUP_STAGES,
+} from "./registration";
 const clean = (max: number) => z.string().trim().max(max);
 export const emailSchema = z
   .string()
@@ -40,10 +44,24 @@ export const teamDetailsSchema = z.object({
   department: clean(100).optional().default(""),
   teamSize: z.number().int().min(1),
 });
+const optionalGoogleDriveUrl = z.union([
+  z.literal(""),
+  z
+    .string()
+    .trim()
+    .url("Enter a valid Google Drive link.")
+    .max(500)
+    .refine(
+      isGoogleDriveUrl,
+      "Enter a valid Google Drive link (drive.google.com or docs.google.com).",
+    ),
+]);
 export const registrationSchema = z
   .object({
     ...teamDetailsSchema.shape,
     members: z.array(member),
+    deckMode: z.enum(["upload", "drive"]).optional().default("upload"),
+    deckUrl: optionalGoogleDriveUrl.optional().default(""),
     requestId: z.string().uuid(),
     whatsappConsent: z.literal(true, {
       error: "Please consent to WhatsApp contact from the organizers.",
@@ -53,6 +71,12 @@ export const registrationSchema = z
     }),
   })
   .superRefine((v, ctx) => {
+    if (v.deckMode === "drive" && !v.deckUrl)
+      ctx.addIssue({
+        code: "custom",
+        path: ["deckUrl"],
+        message: "Paste a Google Drive link to your pitch deck.",
+      });
     if (v.members.length !== v.teamSize - 1)
       ctx.addIssue({
         code: "custom",
@@ -84,6 +108,7 @@ export const submissionSchema = z
     research: clean(4000),
     mvpUrl: optionalUrl,
     pitchUrl: optionalUrl,
+    deckUrl: optionalGoogleDriveUrl.optional().default(""),
     aiTools: clean(1000),
     aiDeclaration: z.boolean(),
     final: z.boolean(),

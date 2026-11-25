@@ -15,7 +15,12 @@ import {
   Upload,
 } from "lucide-react";
 import { registrationSchema } from "@/lib/validation";
-import { MAX_DECK_BYTES, MAX_DECK_LABEL, STARTUP_STAGES } from "@/lib/registration";
+import {
+  isGoogleDriveUrl,
+  MAX_DECK_BYTES,
+  MAX_DECK_LABEL,
+  STARTUP_STAGES,
+} from "@/lib/registration";
 import { registrationState, type PublicEvent } from "@/lib/types";
 import { api, Brand, FormMessage, LoadingButton, formatDate } from "./ui";
 import { usePublicEvent } from "./use-public-event";
@@ -30,6 +35,8 @@ type Draft = {
   institution: string;
   password: string;
   members: { name: string; email: string }[];
+  deckMode: "upload" | "drive";
+  deckUrl: string;
   requestId: string;
   whatsappConsent: boolean;
   agreement: boolean;
@@ -44,6 +51,8 @@ const empty: Draft = {
   institution: "",
   password: "",
   members: [],
+  deckMode: "upload",
+  deckUrl: "",
   requestId: "",
   whatsappConsent: false,
   agreement: false,
@@ -73,12 +82,15 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
             "startupName",
             "startupStage",
             "startupDescription",
+            "deckUrl",
             "leaderName",
             "email",
             "whatsapp",
             "institution",
           ] as const)
             if (typeof stored[key] === "string") next[key] = stored[key];
+          if (stored.deckMode === "upload" || stored.deckMode === "drive")
+            next.deckMode = stored.deckMode;
           if (Array.isArray(stored.members))
             next.members = stored.members.filter(
               (m: { name?: unknown; email?: unknown }) =>
@@ -126,7 +138,13 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
         (i) =>
           all ||
           (step === 0
-            ? ["startupName", "startupStage", "startupDescription"]
+            ? [
+                "startupName",
+                "startupStage",
+                "startupDescription",
+                "deckMode",
+                "deckUrl",
+              ]
             : step === 1
               ? [
                   "leaderName",
@@ -152,13 +170,25 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
         return false;
       }
     }
-    if ((step === 0 || all) && !deck) {
-      setFields((p) => ({
-        ...p,
-        deck: "Upload your PDF pitch deck to apply.",
-      }));
-      setError("A PDF pitch deck is required for review.");
-      return false;
+    if (step === 0 || all) {
+      if (data.deckMode === "drive") {
+        if (!data.deckUrl.trim() || !isGoogleDriveUrl(data.deckUrl)) {
+          setFields((p) => ({
+            ...p,
+            deckUrl:
+              "Paste a valid Google Drive link (drive.google.com or docs.google.com).",
+          }));
+          setError("Provide a valid Google Drive link to your pitch deck.");
+          return false;
+        }
+      } else if (!deck) {
+        setFields((p) => ({
+          ...p,
+          deck: "Upload your PDF pitch deck or switch to a Google Drive link.",
+        }));
+        setError("A PDF pitch deck or Google Drive link is required for review.");
+        return false;
+      }
     }
     return true;
   };
@@ -174,7 +204,8 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
       }
       return;
     }
-    if (!validate(true) || !deck) return;
+    if (!validate(true)) return;
+    if (data.deckMode === "upload" && !deck) return;
     if (!state.open) {
       setError(state.reason);
       return;
@@ -187,7 +218,7 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
         "data",
         JSON.stringify({ ...data, teamSize: data.members.length + 1 }),
       );
-      body.set("deck", deck);
+      if (data.deckMode === "upload" && deck) body.set("deck", deck);
       const r = await api<{ redirect: string }>("/api/register", "POST", body);
       completed.current = true;
       try {
@@ -417,57 +448,139 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                   </div>
                 </div>
                 <div className="field leap-deck-field">
-                  <label htmlFor="deck">
-                    Startup Pitch Deck <span>* · PDF, up to {MAX_DECK_LABEL}</span>
-                  </label>
-                  <div className={`leap-upload ${deck ? "has-file" : ""}`}>
-                    <Upload size={26} />
-                    <strong>
-                      {deck ? deck.name : "Choose your PDF pitch deck"}
-                    </strong>
+                  <label htmlFor={data.deckMode === "drive" ? "deckUrl" : "deck"}>
+                    Startup Pitch Deck{" "}
                     <span>
-                      {deck
-                        ? `${(deck.size / 1000000).toFixed(2)} MB · Click to replace`
-                        : "Organizers will review this deck to shortlist startups."}
+                      * ·{" "}
+                      {data.deckMode === "drive"
+                        ? "Google Drive link"
+                        : `PDF, up to ${MAX_DECK_LABEL}`}
                     </span>
-                    <input
-                      id="deck"
-                      required
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      aria-label="Startup Pitch Deck PDF Upload"
-                      aria-invalid={!!fields.deck}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        if (
-                          !/\.pdf$/i.test(f.name) ||
-                        (f.type && f.type !== "application/pdf") ||
-                          f.size > MAX_DECK_BYTES ||
-                          !f.size
-                        ) {
-                          setDeck(null);
-                          setFields((p) => ({
-                            ...p,
-                            deck: `Choose a non-empty PDF smaller than ${MAX_DECK_LABEL}.`,
-                          }));
-                          e.target.value = "";
-                          return;
-                        }
-                        setDeck(f);
-                        setFields((p) => ({ ...p, deck: "" }));
-                        setError("");
+                  </label>
+                  <div
+                    className="leap-deck-toggle"
+                    role="group"
+                    aria-label="Pitch deck submission method"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={data.deckMode === "upload"}
+                      onClick={() => {
+                        change("deckMode", "upload");
+                        setFields((p) => ({ ...p, deck: "", deckUrl: "" }));
                       }}
-                    />
+                    >
+                      Upload PDF (≤ {MAX_DECK_LABEL})
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={data.deckMode === "drive"}
+                      onClick={() => {
+                        change("deckMode", "drive");
+                        setFields((p) => ({ ...p, deck: "", deckUrl: "" }));
+                      }}
+                    >
+                      Google Drive link (if &gt; {MAX_DECK_LABEL})
+                    </button>
                   </div>
-                  {fields.deck && (
-                    <small className="field-error">{fields.deck}</small>
+                  {data.deckMode === "drive" ? (
+                    <>
+                      <input
+                        id="deckUrl"
+                        type="url"
+                        required
+                        maxLength={500}
+                        value={data.deckUrl}
+                        placeholder="https://drive.google.com/file/d/..."
+                        aria-label="Startup Pitch Deck Google Drive Link"
+                        aria-invalid={!!fields.deckUrl}
+                        onChange={(e) => change("deckUrl", e.target.value)}
+                      />
+                      {fields.deckUrl && (
+                        <small className="field-error">{fields.deckUrl}</small>
+                      )}
+                      <small>
+                        Set sharing to &ldquo;Anyone with the link can
+                        view&rdquo; so organizers can review your deck.
+                      </small>
+                    </>
+                  ) : (
+                    <>
+                      <div className={`leap-upload ${deck ? "has-file" : ""}`}>
+                        <Upload size={26} />
+                        <strong>
+                          {deck ? deck.name : "Choose your PDF pitch deck"}
+                        </strong>
+                        <span>
+                          {deck
+                            ? `${(deck.size / 1000000).toFixed(2)} MB · Click to replace`
+                            : "Organizers will review this deck to shortlist startups."}
+                        </span>
+                        <input
+                          id="deck"
+                          required
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          aria-label="Startup Pitch Deck PDF Upload"
+                          aria-invalid={!!fields.deck}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            if (
+                              !/\.pdf$/i.test(f.name) ||
+                              (f.type && f.type !== "application/pdf") ||
+                              !f.size
+                            ) {
+                              setDeck(null);
+                              setFields((p) => ({
+                                ...p,
+                                deck: "Choose a non-empty PDF file.",
+                              }));
+                              e.target.value = "";
+                              return;
+                            }
+                            if (f.size > MAX_DECK_BYTES) {
+                              setDeck(null);
+                              setFields((p) => ({
+                                ...p,
+                                deck: `This PDF exceeds ${MAX_DECK_LABEL}. Compress it or use a Google Drive link instead.`,
+                              }));
+                              e.target.value = "";
+                              return;
+                            }
+                            setDeck(f);
+                            setFields((p) => ({ ...p, deck: "" }));
+                            setError("");
+                          }}
+                        />
+                      </div>
+                      {fields.deck && (
+                        <small className="field-error">
+                          {fields.deck}
+                          <button
+                            type="button"
+                            className="leap-deck-fallback"
+                            onClick={() => {
+                              change("deckMode", "drive");
+                              setFields((p) => ({
+                                ...p,
+                                deck: "",
+                                deckUrl: "",
+                              }));
+                            }}
+                          >
+                            Switch to Google Drive link
+                          </button>
+                        </small>
+                      )}
+                      <small>
+                        Include your idea, problem, solution, target customers,
+                        and team. Files are stored privately. If your PDF
+                        exceeds {MAX_DECK_LABEL}, switch to the Google Drive
+                        link option above.
+                      </small>
+                    </>
                   )}
-                  <small>
-                    Include your idea, problem, solution, target customers, and
-                    team. Files are stored privately. Reselect the PDF if you
-                    return to a saved draft.
-                  </small>
                 </div>
               </>
             )}
@@ -608,7 +721,10 @@ export function Registration({ event: initialEvent }: { event: PublicEvent }) {
                   <p className="leap-description">{data.startupDescription}</p>
                   <p>
                     <FileText size={17} />
-                    {deck?.name || "PDF required — return to step 1"}
+                    {data.deckMode === "drive"
+                      ? data.deckUrl ||
+                        "Google Drive link required — return to step 1"
+                      : deck?.name || "PDF required — return to step 1"}
                   </p>
                   <hr />
                   <div>

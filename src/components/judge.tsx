@@ -188,13 +188,24 @@ export function Judge({ name }: { name: string }) {
                     Pitch presentation <ArrowUpRight size={12} />
                   </a>
                 )}
-                {project.submission.deckFileId && (
+                {project.submission.deckFileId ? (
                   <a
                     className="text-link"
                     href={`/api/files/${project.submission.deckFileId}`}
                   >
                     Download pitch deck <Download size={12} />
                   </a>
+                ) : (
+                  project.submission.deckUrl && (
+                    <a
+                      className="text-link"
+                      href={project.submission.deckUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open pitch deck link <ArrowUpRight size={12} />
+                    </a>
+                  )
                 )}
               </div>
               <div className="workspace-card">

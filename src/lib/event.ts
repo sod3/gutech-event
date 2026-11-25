@@ -106,6 +106,7 @@ export function safeTeam(team: TeamDoc, includeInvite = false): SafeTeam {
     startupStage: team.startupStage,
     startupDescription: team.startupDescription,
     applicationDeckFileId: team.applicationDeckFileId,
+    applicationDeckUrl: team.applicationDeckUrl,
     payment: {
       status: team.payment.status,
       methodId: team.payment.methodId,

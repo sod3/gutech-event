@@ -131,12 +131,12 @@ try {
     [new Date("2026-10-30T00:00:00+05:00").getTime(), true],
     [new Date("2026-10-31T00:00:00+05:00").getTime(), true],
     [new Date("2026-11-09T12:00:00+05:00").getTime(), true],
-    [new Date("2026-12-15T00:00:00+05:00").getTime(), true],
-    [new Date("2026-12-15T23:59:58+05:00").getTime(), true],
+    [new Date("2026-12-02T00:00:00+05:00").getTime(), true],
+    [new Date("2026-12-02T23:59:58+05:00").getTime(), true],
     [deadline - 1, true],
     [deadline, false],
-    [new Date("2026-12-15T18:59:59Z").getTime(), false],
-    [new Date("2026-12-16T00:00:00+05:00").getTime(), false],
+    [new Date("2026-12-02T18:59:59Z").getTime(), false],
+    [new Date("2026-12-03T00:00:00+05:00").getTime(), false],
   ] as const) {
     Date.now = () => now;
     assert.equal(registrationState(schedule).open, expectedOpen);
@@ -153,7 +153,7 @@ assert.match(formatDate(schedule.eventDate, true), /30.*Oct.*2026/);
 assert.doesNotMatch(formatDate(schedule.eventDate, true), /AM|PM|PKT|:/i);
 assert.match(
   formatDate(schedule.registrationDeadline),
-  /15.*Dec.*2026.*11:59.*pm.*PKT/i,
+  /0?2.*Dec.*2026.*11:59.*pm.*PKT/i,
 );
 console.log(
   "PASS startup fields, idea-only eligibility, 21-member teams, legacy status mapping, WhatsApp formats and deadline boundaries.",
